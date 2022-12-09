@@ -1,6 +1,9 @@
 # NetCDF files
 *.nc
 
+# Profiling output
+*.dat
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
