@@ -7,6 +7,10 @@ Optimised for memory usage
 
 Requires numba and iris
 
+Requires access to relevant MOGREPS data
+
+Postprocessing of radar data still missing
+
 Usage
 ```
 python standalone_rainfall_processing.py

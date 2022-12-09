@@ -253,7 +253,7 @@ def make_cube(data, dims, cube_type="amount"):
         cube.units = "1"
     else:
         raise ValueError("cube to export has unexpected cube_type")
-    cube.attributes["source"] = "fast_rainfall_postproceccing on MOGREPS_UK"
+    cube.attributes["source"] = "fast_rainfall_postprocessing on MOGREPS_UK data"
     return cube
 
 
