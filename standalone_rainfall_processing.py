@@ -394,7 +394,7 @@ def process_files():
         e_prec_t_max_cube, glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc"
     )
     del e_prec_t_max_cube
-   # Post-process for each radius
+    # Post-process for each radius
     stride_ij = args.stride_ij
     for radius in radii:
         process_for_radius(
