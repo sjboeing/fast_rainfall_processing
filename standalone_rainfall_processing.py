@@ -41,7 +41,7 @@ time_index_end = 12 * 21
 
 
 @njit(parallel=True)
-def get_t_max(input_data, window_length):
+def get_t_max(input_data, window_length, seconds_per_timestep):
     """
     This bit of code gets the optimal-time precipitation and the corresponding time index
     It expects a 3D (time,lat,lon) input array, i.e one member at a time, which is more memory efficient
@@ -55,20 +55,28 @@ def get_t_max(input_data, window_length):
         raise ValueError(
             "get_t_max: window_length larger than number of time steps provided"
         )
-    t_max_index = np.zeros((len_i, len_j), dtype=np.int32)  # Index of optimal times
-    prec_t_max = np.zeros((len_i, len_j))  # Corresponding precipitation
+    t_max_index = np.zeros((len_i, len_j), dtype=np.uint16)  # Index of optimal times
+    prec_t_max = np.zeros(
+        (len_i, len_j), dtype=np.float32
+    )  # Corresponding precipitation
     # Find the right time window for each member, latitude and longitude
     for i_index in prange(len_i):  # Parallelise along longitude
         for j_index in range(len_j):
             # Sum over the initial window length
-            prec_t = np.sum(input_data[:window_length, i_index, j_index])
+            prec_t = (
+                np.sum(input_data[:window_length, i_index, j_index])
+                * seconds_per_timestep
+            )
             prec_t_max[i_index, j_index] = prec_t
             # Running window: remove a time step and add a time step to running total
             for t_index in range(len_t - window_length):
                 prec_t = (
                     prec_t
-                    - input_data[t_index, i_index, j_index]
-                    + input_data[t_index + window_length, i_index, j_index]
+                    + (
+                        input_data[t_index + window_length, i_index, j_index]
+                        - input_data[t_index, i_index, j_index]
+                    )
+                    * seconds_per_timestep
                 )
                 if prec_t > prec_t_max[i_index, j_index]:
                     prec_t_max[i_index, j_index] = prec_t
@@ -114,7 +122,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
     len_j_pp = len(range_j_pp)
     if len_i_pp == 0 or len_j_pp == 0:
         raise ValueError("e_prec_t_max.ndim: no valid output points")
-    processed_data = np.zeros((len_p, len_i_pp, len_j_pp))
+    processed_data = np.zeros((len_p, len_i_pp, len_j_pp), dtype=np.float32)
     # Dimensions of search window for post-processing
     len_i_search = 2 * int_rad_i + 1
     len_j_search = 2 * int_rad_j + 1
@@ -134,15 +142,15 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
         # Longitude index of point where post_processing is done
         i_index = range_i_pp[i_mapping]
         # Arrays to keep track of values currently in sort
-        in_sort_values = np.zeros(0)
-        in_sort_e = np.zeros(0, dtype=np.int32)
-        in_sort_i = np.zeros(0, dtype=np.int32)
-        in_sort_j = np.zeros(0, dtype=np.int32)
+        in_sort_values = np.zeros(0, dtype=np.float32)
+        in_sort_e = np.zeros(0, dtype=np.uint8)
+        in_sort_i = np.zeros(0, dtype=np.uint16)
+        in_sort_j = np.zeros(0, dtype=np.uint16)
         # Arrays to keep track of values to add to sorted list
-        add_to_sort_values = np.zeros(len_eij_search)
-        add_to_sort_e = np.zeros(len_eij_search, dtype=np.int32)
-        add_to_sort_i = np.zeros(len_eij_search, dtype=np.int32)
-        add_to_sort_j = np.zeros(len_eij_search, dtype=np.int32)
+        add_to_sort_values = np.zeros(len_eij_search, dtype=np.float32)
+        add_to_sort_e = np.zeros(len_eij_search, dtype=np.uint8)
+        add_to_sort_i = np.zeros(len_eij_search, dtype=np.uint16)
+        add_to_sort_j = np.zeros(len_eij_search, dtype=np.uint16)
         for j_mapping in range(len_j_pp):
             # Longitude index of point where post_processing is done
             j_index = range_j_pp[j_mapping]
@@ -317,7 +325,8 @@ def process_for_radius(
             len(percentiles),
             len_reduced_lat,
             len_reduced_lon,
-        )
+        ),
+        dtype=np.float32,
     )
     for member in range(num_members):
         (
@@ -353,14 +362,14 @@ def process_files():
     del test_cube
     # Calculate and store optimal-time rainfall
     num_members = len(example_files)
-    e_prec_t_max = np.zeros((num_members, len_lat, len_lon))
-    e_t_max_index = np.zeros((num_members, len_lat, len_lon))
+    e_prec_t_max = np.zeros((num_members, len_lat, len_lon), dtype=np.float32)
+    e_t_max_index = np.zeros((num_members, len_lat, len_lon), dtype=np.uint16)
     for member in range(num_members):
         member_cube = iris.load(example_files[member])
         e_prec_t_max[member, :, :], e_t_max_index[member, :, :] = get_t_max(
-            member_cube[0].data[time_index_start:time_index_end, :, :]
-            * seconds_per_timestep,
+            member_cube[0].data[time_index_start:time_index_end, :, :],
             args.window_length,
+            seconds_per_timestep,
         )
         del member_cube
     member_dim = DimCoord(
@@ -373,7 +382,7 @@ def process_files():
         e_prec_t_max_cube, glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc"
     )
     del e_prec_t_max_cube
-    # Add back start index
+    # Add back start index when saving index cube
     e_t_max_index_cube = make_cube(
         e_t_max_index + time_index_start,
         [member_dim, latitude_dim, longitude_dim],
@@ -384,7 +393,7 @@ def process_files():
         glob_root + "max_rain_ind_t_" + str(minutes_in_window) + ".nc",
         cube_type="index",
     )
-    del e_t_max_index_cube
+    del e_t_max_index, e_t_max_index_cube
     # Post-process for each radius
     stride_ij = args.stride_ij
     for radius in radii:
