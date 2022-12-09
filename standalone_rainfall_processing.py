@@ -375,13 +375,6 @@ def process_files():
     member_dim = DimCoord(
         np.arange(num_members, dtype=np.int32), long_name="member", units="1"
     )
-    e_prec_t_max_cube = make_cube(
-        e_prec_t_max, [member_dim, latitude_dim, longitude_dim]
-    )
-    save_cube(
-        e_prec_t_max_cube, glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc"
-    )
-    del e_prec_t_max_cube
     # Add back start index when saving index cube
     e_t_max_index_cube = make_cube(
         e_t_max_index + time_index_start,
@@ -394,7 +387,14 @@ def process_files():
         cube_type="index",
     )
     del e_t_max_index, e_t_max_index_cube
-    # Post-process for each radius
+    e_prec_t_max_cube = make_cube(
+        e_prec_t_max, [member_dim, latitude_dim, longitude_dim]
+    )
+    save_cube(
+        e_prec_t_max_cube, glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc"
+    )
+    del e_prec_t_max_cube
+   # Post-process for each radius
     stride_ij = args.stride_ij
     for radius in radii:
         process_for_radius(
