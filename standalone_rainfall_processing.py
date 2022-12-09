@@ -133,8 +133,9 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
     activate_point = np.full((len_i_search, len_j_search), False, dtype=bool_)
     for i_search in range(len_i_search):
         for j_search in range(len_j_search):
-            rad_i_scale = (1.0 * (i_search - rad_i)) / rad_i
-            rad_j_scale = (1.0 * (j_search - rad_j)) / rad_j
+            # Note: needs offset with respect to center, hence use int in numerator!
+            rad_i_scale = (1.0 * (i_search - int_rad_i)) / rad_i
+            rad_j_scale = (1.0 * (j_search - int_rad_j)) / rad_j
             if rad_i_scale * rad_i_scale + rad_j_scale * rad_j_scale <= 1.0:
                 activate_point[i_search, j_search] = True
     for i_mapping in prange(len_i_pp):  # Parallel over longitude
