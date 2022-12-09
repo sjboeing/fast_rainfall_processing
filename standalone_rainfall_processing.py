@@ -6,7 +6,6 @@ from glob import glob
 import argparse
 import iris
 from iris.coords import DimCoord
-import itertools
 
 # Argument parser
 parser = argparse.ArgumentParser(
