@@ -246,7 +246,6 @@ def make_cube(data, dims, cube_type="amount"):
     if cube_type == "amount":
         cube.long_name = "Rainfall amount"
         cube.var_name = "rainfall_amount"
-        cube.standard_name = "rainfall_amount"
         cube.units = "mm"
     elif cube_type == "index":
         cube.long_name = "Start index within full time series"
@@ -254,6 +253,7 @@ def make_cube(data, dims, cube_type="amount"):
         cube.units = "1"
     else:
         raise ValueError("cube to export has unexpected cube_type")
+    cube.attributes["source"]="fast_rainfall_postproceccing on MOGREPS_UK"
     return cube
 
 
