@@ -246,7 +246,7 @@ def make_cube(data, dims, cube_type="amount"):
     return cube
 
 
-def save_cube(cube, cube_filename,cube_type="amount"):
+def save_cube(cube, cube_filename, cube_type="amount"):
     if cube_type == "amount":
         iris.fileformats.netcdf.save(
             cube,
@@ -266,7 +266,7 @@ def save_cube(cube, cube_filename,cube_type="amount"):
         )
     else:
         raise ValueError("cube to export has unexpected cube_type")
- 
+
 
 def process_for_radius(
     radius,
