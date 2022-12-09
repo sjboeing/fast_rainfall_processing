@@ -1,2 +1,22 @@
 # fast_rainfall_processing
-Faster version of rainfall processing routines
+A numba implementation of fast neighboorhood percentile processing
+
+Sped up by keeping track of already sorted values
+
+Optimised for memory usage
+
+Requires numba and iris
+
+Usage
+```
+python standalone_rainfall_processing.py
+```
+
+Optional arguments
+```
+  -h, --help            show this help message and exit
+  -w WINDOW_LENGTH, --window_length WINDOW_LENGTH
+  -s STRIDE_IJ, --stride_ij STRIDE_IJ
+```
+
+
