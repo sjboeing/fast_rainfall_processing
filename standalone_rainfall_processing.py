@@ -216,6 +216,10 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
 
 
 def make_cube(data, dims, cube_type="amount"):
+    """
+    Routine to set up a cube with given dimensions,
+    which adds the relevant attributes
+    """
     if len(dims) == 3:
         cube = iris.cube.Cube(
             data, dim_coords_and_dims=[(dims[0], 0), (dims[1], 1), (dims[2], 2)]
@@ -247,6 +251,9 @@ def make_cube(data, dims, cube_type="amount"):
 
 
 def save_cube(cube, cube_filename, cube_type="amount"):
+    """
+    Routine that saves to NetCDF with compression
+    """
     if cube_type == "amount":
         iris.fileformats.netcdf.save(
             cube,
@@ -277,6 +284,9 @@ def process_for_radius(
     latitude_dim,
     longitude_dim,
 ):
+    """
+    Wrapper routine which sets up and saves the data cubes
+    """
     rad_i = (
         radius / dgrid_km
     )  # Search radius in grid points along longitude, does not need to be integer
@@ -329,6 +339,11 @@ def process_for_radius(
 
 
 def process_files():
+    """
+    The main routine of the standalone script
+    Sets up the data cubes and calls the optimal time
+    And radius-dependent processing
+    """
     # Use first file to get latitudes and longitudes
     test_cube = iris.load(example_files[0])
     latitude_dim = test_cube[0].coord("grid_latitude")
@@ -369,7 +384,7 @@ def process_files():
         glob_root + "max_rain_ind_t_" + str(minutes_in_window) + ".nc",
         cube_type="index",
     )
-
+    del e_t_max_index_cube
     # Post-process for each radius
     stride_ij = args.stride_ij
     for radius in radii:
