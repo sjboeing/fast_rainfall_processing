@@ -205,10 +205,16 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             in_sort_index = 0
             resized_add_to_sort_index = 0
             next_index = 0
-            new_in_sort_values = np.zeros(backfill_index + add_to_sort_index, dtype=np.float32)
+            new_in_sort_values = np.zeros(
+                backfill_index + add_to_sort_index, dtype=np.float32
+            )
             new_in_sort_e = np.zeros(backfill_index + add_to_sort_index, dtype=np.uint8)
-            new_in_sort_i = np.zeros(backfill_index + add_to_sort_index, dtype=np.uint16)
-            new_in_sort_j = np.zeros(backfill_index + add_to_sort_index, dtype=np.uint16)
+            new_in_sort_i = np.zeros(
+                backfill_index + add_to_sort_index, dtype=np.uint16
+            )
+            new_in_sort_j = np.zeros(
+                backfill_index + add_to_sort_index, dtype=np.uint16
+            )
             while (in_sort_index < backfill_index) or (
                 resized_add_to_sort_index < add_to_sort_index
             ):
@@ -233,7 +239,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                     next_index = next_index + 1
                     in_sort_index = in_sort_index + 1
                 else:
-                    new_in_sort_values = resized_add_to_sort_values[
+                    new_in_sort_values[next_index] = resized_add_to_sort_values[
                         resized_add_to_sort_index
                     ]
                     next_index = next_index + 1
