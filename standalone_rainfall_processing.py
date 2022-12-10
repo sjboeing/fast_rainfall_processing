@@ -202,24 +202,47 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             resized_add_to_sort_i = add_to_sort_i.take(indices_for_add_to_sort)
             resized_add_to_sort_j = add_to_sort_j.take(indices_for_add_to_sort)
             # Combine with retained values
-            in_sort_values = np.concatenate(
-                (in_sort_values[:backfill_index], resized_add_to_sort_values)
-            )
-            in_sort_e = np.concatenate(
-                (in_sort_e[:backfill_index], resized_add_to_sort_e)
-            )
-            in_sort_i = np.concatenate(
-                (in_sort_i[:backfill_index], resized_add_to_sort_i)
-            )
-            in_sort_j = np.concatenate(
-                (in_sort_j[:backfill_index], resized_add_to_sort_j)
-            )
+            in_sort_index = 0
+            resized_add_to_sort_index = 0
+            next_index = 0
+            new_in_sort_values = np.zeros(backfill_index + add_to_sort_index, dtype=np.float32)
+            new_in_sort_e = np.zeros(backfill_index + add_to_sort_index, dtype=np.uint8)
+            new_in_sort_i = np.zeros(backfill_index + add_to_sort_index, dtype=np.uint16)
+            new_in_sort_j = np.zeros(backfill_index + add_to_sort_index, dtype=np.uint16)
+            while (in_sort_index < backfill_index) or (
+                resized_add_to_sort_index < add_to_sort_index
+            ):
+                if (in_sort_index < backfill_index) and (
+                    resized_add_to_sort_index < add_to_sort_index
+                ):
+                    if (
+                        in_sort_values[in_sort_index]
+                        < resized_add_to_sort_values[resized_add_to_sort_index]
+                    ):
+                        new_in_sort_values[next_index] = in_sort_values[in_sort_index]
+                        next_index = next_index + 1
+                        in_sort_index = in_sort_index + 1
+                    else:
+                        new_in_sort_values[next_index] = resized_add_to_sort_values[
+                            resized_add_to_sort_index
+                        ]
+                        next_index = next_index + 1
+                        resized_add_to_sort_index = resized_add_to_sort_index + 1
+                elif in_sort_index < backfill_index:
+                    new_in_sort_values[next_index] = in_sort_values[in_sort_index]
+                    next_index = next_index + 1
+                    in_sort_index = in_sort_index + 1
+                else:
+                    new_in_sort_values = resized_add_to_sort_values[
+                        resized_add_to_sort_index
+                    ]
+                    next_index = next_index + 1
+                    resized_add_to_sort_index = resized_add_to_sort_index + 1
             # Sort combined list with a mergesort (should be efficient for presorted lists)
-            indices_for_in_sort = np.argsort(in_sort_values, kind="mergesort")
-            in_sort_values = in_sort_values.take(indices_for_in_sort)
-            in_sort_e = in_sort_e.take(indices_for_in_sort)
-            in_sort_i = in_sort_i.take(indices_for_in_sort)
-            in_sort_j = in_sort_j.take(indices_for_in_sort)
+            in_sort_values = new_in_sort_values
+            in_sort_e = new_in_sort_e
+            in_sort_i = new_in_sort_i
+            in_sort_j = new_in_sort_j
             # Combine the relevant data
             for p_mapping in range(len_p):
                 p_index = round(
