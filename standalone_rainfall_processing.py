@@ -251,7 +251,7 @@ def make_cube(data, dims, cube_type="amount"):
             ],
         )
     else:
-        raise ValueError("cube to export has unexpected shape")
+        raise ValueError("cube data to create has unexpected shape")
     if cube_type == "amount":
         cube.long_name = "Rainfall amount"
         cube.var_name = "rainfall_amount"
@@ -261,7 +261,7 @@ def make_cube(data, dims, cube_type="amount"):
         cube.var_name = "start_index"
         cube.units = "1"
     else:
-        raise ValueError("cube to export has unexpected cube_type")
+        raise ValueError("cube to create has unexpected cube_type")
     cube.attributes["source"] = "fast_rainfall_postprocessing on MOGREPS_UK data"
     return cube
 
