@@ -208,35 +208,31 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             new_in_sort_e = np.zeros(new_in_sort_len, dtype=np.uint8)
             new_in_sort_i = np.zeros(new_in_sort_len, dtype=np.uint16)
             new_in_sort_j = np.zeros(new_in_sort_len, dtype=np.uint16)
-            while (is_index < backfill_index) or (rats_index < add_to_sort_index):
+            for nis_index in range(new_in_sort_len):
                 if (is_index < backfill_index) and (rats_index < add_to_sort_index):
                     if in_sort_values[is_index] < resized_ats_values[rats_index]:
                         new_in_sort_values[nis_index] = in_sort_values[is_index]
                         new_in_sort_e[nis_index] = in_sort_e[is_index]
                         new_in_sort_i[nis_index] = in_sort_i[is_index]
                         new_in_sort_j[nis_index] = in_sort_j[is_index]
-                        nis_index = nis_index + 1
                         is_index = is_index + 1
                     else:
                         new_in_sort_values[nis_index] = resized_ats_values[rats_index]
                         new_in_sort_e[nis_index] = resized_ats_e[rats_index]
                         new_in_sort_i[nis_index] = resized_ats_i[rats_index]
                         new_in_sort_j[nis_index] = resized_ats_j[rats_index]
-                        nis_index = nis_index + 1
                         rats_index = rats_index + 1
                 elif is_index < backfill_index:
                     new_in_sort_values[nis_index] = in_sort_values[is_index]
                     new_in_sort_e[nis_index] = in_sort_e[is_index]
                     new_in_sort_i[nis_index] = in_sort_i[is_index]
                     new_in_sort_j[nis_index] = in_sort_j[is_index]
-                    nis_index = nis_index + 1
                     is_index = is_index + 1
                 else:
                     new_in_sort_values[nis_index] = resized_ats_values[rats_index]
                     new_in_sort_e[nis_index] = resized_ats_e[rats_index]
                     new_in_sort_i[nis_index] = resized_ats_i[rats_index]
                     new_in_sort_j[nis_index] = resized_ats_j[rats_index]
-                    nis_index = nis_index + 1
                     rats_index = rats_index + 1
             # Replace full sorted list
             in_sort_values = new_in_sort_values
