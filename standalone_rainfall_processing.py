@@ -253,6 +253,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                 ]
     return processed_data, range_i_pp, range_j_pp
 
+
 def make_and_save_cube(data, dims, cube_filename, cube_type="amount"):
     """
     Routine to set up and save a cube with given dimensions,
@@ -301,6 +302,7 @@ def make_and_save_cube(data, dims, cube_filename, cube_type="amount"):
     else:
         raise ValueError("cube to export has unexpected cube_type")
     del cube
+
 
 def process_for_radius(
     radius,
@@ -356,6 +358,7 @@ def process_for_radius(
         glob_root + "mem_pp_r" + str(radius) + "_t_" + str(minutes_in_window) + ".nc",
     )
     del member_processed_data
+
 
 def process_files():
     """
