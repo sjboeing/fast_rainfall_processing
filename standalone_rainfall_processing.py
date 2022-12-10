@@ -200,14 +200,13 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             resized_ats_i = add_to_sort_i.take(indices_for_add_to_sort)
             resized_ats_j = add_to_sort_j.take(indices_for_add_to_sort)
             # Combine two pre-sorted lists using a manual approach
-            is_index = 0
-            rats_index = 0
-            nis_index = 0
             new_in_sort_len = backfill_index + add_to_sort_index
             new_in_sort_values = np.zeros(new_in_sort_len, dtype=np.float32)
             new_in_sort_e = np.zeros(new_in_sort_len, dtype=np.uint8)
             new_in_sort_i = np.zeros(new_in_sort_len, dtype=np.uint16)
             new_in_sort_j = np.zeros(new_in_sort_len, dtype=np.uint16)
+            is_index = 0
+            rats_index = 0
             for nis_index in range(new_in_sort_len):
                 if (is_index < backfill_index) and (rats_index < add_to_sort_index):
                     if in_sort_values[is_index] < resized_ats_values[rats_index]:
