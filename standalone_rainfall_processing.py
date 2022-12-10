@@ -195,17 +195,25 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                         add_to_sort_index = add_to_sort_index + 1
             # Sort the values that need adding first, use argsort to get index order
             indices_for_add_to_sort = np.argsort(add_to_sort_values[:add_to_sort_index])
-            add_to_sort_values = add_to_sort_values.take(indices_for_add_to_sort)
-            add_to_sort_e = add_to_sort_e.take(indices_for_add_to_sort)
-            add_to_sort_i = add_to_sort_i.take(indices_for_add_to_sort)
-            add_to_sort_j = add_to_sort_j.take(indices_for_add_to_sort)
+            resized_add_to_sort_values = add_to_sort_values.take(
+                indices_for_add_to_sort
+            )
+            resized_add_to_sort_e = add_to_sort_e.take(indices_for_add_to_sort)
+            resized_add_to_sort_i = add_to_sort_i.take(indices_for_add_to_sort)
+            resized_add_to_sort_j = add_to_sort_j.take(indices_for_add_to_sort)
             # Combine with retained values
             in_sort_values = np.concatenate(
-                (in_sort_values[:backfill_index], add_to_sort_values)
+                (in_sort_values[:backfill_index], resized_add_to_sort_values)
             )
-            in_sort_e = np.concatenate((in_sort_e[:backfill_index], add_to_sort_e))
-            in_sort_i = np.concatenate((in_sort_i[:backfill_index], add_to_sort_i))
-            in_sort_j = np.concatenate((in_sort_j[:backfill_index], add_to_sort_j))
+            in_sort_e = np.concatenate(
+                (in_sort_e[:backfill_index], resized_add_to_sort_e)
+            )
+            in_sort_i = np.concatenate(
+                (in_sort_i[:backfill_index], resized_add_to_sort_i)
+            )
+            in_sort_j = np.concatenate(
+                (in_sort_j[:backfill_index], resized_add_to_sort_j)
+            )
             # Sort combined list with a mergesort (should be efficient for presorted lists)
             indices_for_in_sort = np.argsort(in_sort_values, kind="mergesort")
             in_sort_values = in_sort_values.take(indices_for_in_sort)
