@@ -228,7 +228,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                     new_in_sort_i[nis_index] = in_sort_i[is_index]
                     new_in_sort_j[nis_index] = in_sort_j[is_index]
                     is_index = is_index + 1
-                else:
+                elif rats_index < add_to_sort_index:
                     new_in_sort_values[nis_index] = resized_ats_values[rats_index]
                     new_in_sort_e[nis_index] = resized_ats_e[rats_index]
                     new_in_sort_i[nis_index] = resized_ats_i[rats_index]
