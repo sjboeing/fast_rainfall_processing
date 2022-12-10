@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from numba import njit, prange, set_num_threads
+from numba import njit, jit, prange, set_num_threads
 from numba.types import bool_
 import numpy as np
 from glob import glob
@@ -230,10 +230,9 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                 ]
     return processed_data, range_i_pp, range_j_pp
 
-
-def make_cube(data, dims, cube_type="amount"):
+def make_and_save_cube(data, dims, cube_filename, cube_type="amount"):
     """
-    Routine to set up a cube with given dimensions,
+    Routine to set up and save a cube with given dimensions,
     which adds the relevant attributes
     """
     if len(dims) == 3:
@@ -252,25 +251,11 @@ def make_cube(data, dims, cube_type="amount"):
         )
     else:
         raise ValueError("cube data to create has unexpected shape")
+    cube.attributes["source"] = "fast_rainfall_postprocessing on MOGREPS_UK data"
     if cube_type == "amount":
         cube.long_name = "Rainfall amount"
         cube.var_name = "rainfall_amount"
         cube.units = "mm"
-    elif cube_type == "index":
-        cube.long_name = "Start index within full time series"
-        cube.var_name = "start_index"
-        cube.units = "1"
-    else:
-        raise ValueError("cube to create has unexpected cube_type")
-    cube.attributes["source"] = "fast_rainfall_postprocessing on MOGREPS_UK data"
-    return cube
-
-
-def save_cube(cube, cube_filename, cube_type="amount"):
-    """
-    Routine that saves to NetCDF with compression
-    """
-    if cube_type == "amount":
         iris.fileformats.netcdf.save(
             cube,
             cube_filename,
@@ -280,6 +265,9 @@ def save_cube(cube, cube_filename, cube_type="amount"):
             least_significant_digit=2,
         )
     elif cube_type == "index":
+        cube.long_name = "Start index within full time series"
+        cube.var_name = "start_index"
+        cube.units = "1"
         iris.fileformats.netcdf.save(
             cube,
             cube_filename,
@@ -289,7 +277,7 @@ def save_cube(cube, cube_filename, cube_type="amount"):
         )
     else:
         raise ValueError("cube to export has unexpected cube_type")
-
+    del cube
 
 def process_for_radius(
     radius,
@@ -316,23 +304,18 @@ def process_for_radius(
     reduced_latitude_dim = latitude_dim[range_i_pp]
     reduced_longitude_dim = longitude_dim[range_j_pp]
     percentile_dim = DimCoord(np.double(percentiles), long_name="percentile", units="1")
-    ensemble_processed_data_cube = make_cube(
+    make_and_save_cube(
         ensemble_processed_data,
         [percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
-    )
-    len_reduced_lat = ensemble_processed_data_cube.shape[1]
-    len_reduced_lon = ensemble_processed_data_cube.shape[2]
-    save_cube(
-        ensemble_processed_data_cube,
         glob_root + "ens_pp_r" + str(radius) + "_t_" + str(minutes_in_window) + ".nc",
     )
-    del ensemble_processed_data, ensemble_processed_data_cube
+    del ensemble_processed_data
     member_processed_data = np.zeros(
         (
             num_members,
             len(percentiles),
-            len_reduced_lat,
-            len_reduced_lon,
+            len(range_i_pp),
+            len(range_j_pp),
         ),
         dtype=np.float32,
     )
@@ -344,16 +327,12 @@ def process_for_radius(
         ) = fast_percentile_processing(
             e_prec_t_max[member, :, :][None, :, :], rad_i, rad_j, percentiles, stride_ij
         )
-    member_processed_data_cube = make_cube(
+    make_and_save_cube(
         member_processed_data,
         [member_dim, percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
-    )
-    save_cube(
-        member_processed_data_cube,
         glob_root + "mem_pp_r" + str(radius) + "_t_" + str(minutes_in_window) + ".nc",
     )
-    del member_processed_data, member_processed_data_cube
-
+    del member_processed_data
 
 def process_files():
     """
@@ -384,24 +363,18 @@ def process_files():
         np.arange(num_members, dtype=np.int32), long_name="member", units="1"
     )
     # Add back start index when saving index cube
-    e_t_max_index_cube = make_cube(
+    make_and_save_cube(
         e_t_max_index + time_index_start,
         [member_dim, latitude_dim, longitude_dim],
-        cube_type="index",
-    )
-    save_cube(
-        e_t_max_index_cube,
         glob_root + "max_rain_ind_t_" + str(minutes_in_window) + ".nc",
         cube_type="index",
     )
-    del e_t_max_index, e_t_max_index_cube
-    e_prec_t_max_cube = make_cube(
-        e_prec_t_max, [member_dim, latitude_dim, longitude_dim]
+    del e_t_max_index
+    make_and_save_cube(
+        e_prec_t_max,
+        [member_dim, latitude_dim, longitude_dim],
+        glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc",
     )
-    save_cube(
-        e_prec_t_max_cube, glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc"
-    )
-    del e_prec_t_max_cube
     # Post-process for each radius
     stride_ij = args.stride_ij
     for radius in radii:
