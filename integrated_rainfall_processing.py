@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
-from numba import njit, jit, prange, set_num_threads
-from numba.types import bool_
-import numpy as np
 from glob import glob
 import argparse
-import iris
-from iris.coords import DimCoord
-from iris.time import PartialDateTime
 import warnings
 import datetime
-
-warnings.filterwarnings("ignore")
 import time
 import os
+import numpy as np
+import iris
+from iris.coords import DimCoord
 from utils import get_t_max, revamped_percentile_processing, make_and_save_cube
+
+warnings.filterwarnings("ignore")
 
 # issues with radar vs fcst data: processing is set up for mogreps members which are stored as mm/s - meanwhile rainfall is mm/hr, so factor of 3600 difference! Will need to play with this unfortunately. See first steps of process_forecasts vs process_radar ; for radar need to divide by 12 (60/5), not *3600!
 
@@ -100,7 +97,6 @@ def process_for_radius(
             + "_tot.nc",
         )
         return
-
     else:
         make_and_save_cube(
             ensemble_processed_data,
@@ -115,9 +111,6 @@ def process_for_radius(
     del ensemble_processed_data
     # Process and save individual members
     num_members = np.shape(e_prec_t_max)[0]
-    int_rad_i = int(np.ceil(rad_i))
-    int_rad_j = int(np.ceil(rad_j))
-    len_e = e_prec_t_max.shape[0]  # Number of ensemble members
     len_i = e_prec_t_max.shape[1]  # Number of lat indices
     len_j = e_prec_t_max.shape[2]  # Number of lon indices
     len_p = len(percentiles)
@@ -229,7 +222,7 @@ def process_files(day, minutes_in_window):
         out_root + "_exact_min_" + str(minutes_in_window) + ".nc",
     )
 
-    if os.path.isdir(out_root + "_exact_tot.nc") == False:
+    if not os.path.isdir(out_root + "_exact_tot.nc"):
         make_and_save_cube(
             e_prec_t_day,
             [member_dim, latitude_dim, longitude_dim],
