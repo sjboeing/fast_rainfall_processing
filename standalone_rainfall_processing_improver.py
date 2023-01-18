@@ -6,6 +6,7 @@ from glob import glob
 import argparse
 import iris
 from iris.coords import DimCoord
+from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 
 # Argument parser
 parser = argparse.ArgumentParser(
@@ -55,7 +56,7 @@ def get_t_max(input_data, window_length, seconds_per_timestep):
             "get_t_max: window_length larger than number of time steps provided"
         )
     # Index of optimal times
-    t_max_index = np.zeros((len_i, len_j), dtype=np.uint16)
+    t_max_index = np.zeros((len_i, len_j), dtype=np.int32)
     # Corresponding precipitation
     prec_t_max = np.zeros((len_i, len_j), dtype=np.float32)
     # Find the right time window for each latitude and longitude
@@ -107,8 +108,6 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             raise ValueError("e_prec_t_max.ndim: invalid percentile")
     int_rad_i = int(np.ceil(rad_i))
     int_rad_j = int(np.ceil(rad_j))
-    i_rad_i = 1.0 / rad_i
-    i_rad_j = 1.0 / rad_j
     len_e = e_prec_t_max.shape[0]  # Number of ensemble members
     len_i = e_prec_t_max.shape[1]  # Number of lat indices
     len_j = e_prec_t_max.shape[2]  # Number of lon indices
@@ -145,8 +144,8 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
     for i_search in range(len_i_search):
         for j_search in range(len_j_search):
             # Needs offset with respect to center, hence use int in numerator!
-            rad_i_scale = (1.0 * (i_search - int_rad_i)) * i_rad_i
-            rad_j_scale = (1.0 * (j_search - int_rad_j)) * i_rad_j
+            rad_i_scale = (1.0 * (i_search - int_rad_i)) / rad_i
+            rad_j_scale = (1.0 * (j_search - int_rad_j)) / rad_j
             if rad_i_scale * rad_i_scale + rad_j_scale * rad_j_scale <= 1.0:
                 activate_point[i_search, j_search] = True
     # Parallel over longitude
@@ -155,14 +154,14 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
         i_index = range_i_pp[i_mapping]
         # Arrays to keep track of values currently in sort
         in_sort_values = np.zeros(0, dtype=np.float32)
-        in_sort_e = np.zeros(0, dtype=np.uint8)
-        in_sort_i = np.zeros(0, dtype=np.uint16)
-        in_sort_j = np.zeros(0, dtype=np.uint16)
+        in_sort_e = np.zeros(0, dtype=np.int32)
+        in_sort_i = np.zeros(0, dtype=np.int32)
+        in_sort_j = np.zeros(0, dtype=np.int32)
         # Arrays to keep track of values to add to sorted list
         add_to_sort_values = np.zeros(len_eij_search, dtype=np.float32)
-        add_to_sort_e = np.zeros(len_eij_search, dtype=np.uint8)
-        add_to_sort_i = np.zeros(len_eij_search, dtype=np.uint16)
-        add_to_sort_j = np.zeros(len_eij_search, dtype=np.uint16)
+        add_to_sort_e = np.zeros(len_eij_search, dtype=np.int32)
+        add_to_sort_i = np.zeros(len_eij_search, dtype=np.int32)
+        add_to_sort_j = np.zeros(len_eij_search, dtype=np.int32)
         for j_mapping in range(len_j_pp):
             # Longitude index of point where post_processing is done
             j_index = range_j_pp[j_mapping]
@@ -213,9 +212,9 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             # Combine the two pre-sorted lists using a manual approach
             new_in_sort_len = keeper_index + add_to_sort_index
             new_in_sort_values = np.zeros(new_in_sort_len, dtype=np.float32)
-            new_in_sort_e = np.zeros(new_in_sort_len, dtype=np.uint8)
-            new_in_sort_i = np.zeros(new_in_sort_len, dtype=np.uint16)
-            new_in_sort_j = np.zeros(new_in_sort_len, dtype=np.uint16)
+            new_in_sort_e = np.zeros(new_in_sort_len, dtype=np.int32)
+            new_in_sort_i = np.zeros(new_in_sort_len, dtype=np.int32)
+            new_in_sort_j = np.zeros(new_in_sort_len, dtype=np.int32)
             is_index = 0
             rats_index = 0
             for nis_index in range(new_in_sort_len):
@@ -286,27 +285,21 @@ def make_and_save_cube(data, dims, cube_filename, cube_type="amount"):
         cube.long_name = "Rainfall amount"
         cube.var_name = "rainfall_amount"
         cube.units = "mm"
-        iris.fileformats.netcdf.save(
+        iris.save(
             cube,
             cube_filename,
-            netcdf_format="NETCDF4",
-            zlib=True,
-            complevel=4,
-            least_significant_digit=2,
         )
     elif cube_type == "index":
         cube.long_name = "Start index within full time series"
         cube.var_name = "start_index"
         cube.units = "1"
-        iris.fileformats.netcdf.save(
+        iris.save(
             cube,
             cube_filename,
-            netcdf_format="NETCDF4",
-            zlib=True,
-            complevel=4,
         )
     else:
         raise ValueError("cube to export has unexpected cube_type")
+    print(cube)
     del cube
 
 
@@ -338,30 +331,9 @@ def process_for_radius(
         [percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
         glob_root + "ens_pp_r" + str(radius) + "_t_" + str(minutes_in_window) + ".nc",
     )
-    # del ensemble_processed_data
+    del ensemble_processed_data
     # Process and save individual members
     num_members = np.shape(e_prec_t_max)[0]
-    int_rad_i = int(np.ceil(rad_i))
-    int_rad_j = int(np.ceil(rad_j))
-    len_e = e_prec_t_max.shape[0]  # Number of ensemble members
-    len_i = e_prec_t_max.shape[1]  # Number of lat indices
-    len_j = e_prec_t_max.shape[2]  # Number of lon indices
-    len_p = len(percentiles)
-    # Store indices where to evaluate neighbourhood postprocessing
-    # Ensure the same indices always selected for evaluation
-    # independent of circle radius
-    prelim_range_i_pp = np.arange(0, len_i, stride_ij)
-    prelim_range_j_pp = np.arange(0, len_j, stride_ij)
-    filter_range_i_pp = (prelim_range_i_pp >= int_rad_i) & (
-        prelim_range_i_pp < len_i - int_rad_i
-    )
-    filter_range_j_pp = (prelim_range_j_pp >= int_rad_j) & (
-        prelim_range_j_pp < len_j - int_rad_j
-    )
-    range_i_pp = prelim_range_i_pp[filter_range_i_pp]
-    range_j_pp = prelim_range_j_pp[filter_range_j_pp]
-    reduced_latitude_dim = latitude_dim[range_i_pp]
-    reduced_longitude_dim = longitude_dim[range_j_pp]
     member_processed_data = np.zeros(
         (
             num_members,
@@ -398,11 +370,23 @@ def process_files():
     longitude_dim = test_cube[0].coord("grid_longitude")
     len_lat = test_cube[0].shape[1]
     len_lon = test_cube[0].shape[2]
+    latitude_m_dim = DimCoord(
+        1000.0 * dgrid_km * np.arange(len_lat),
+        standard_name="projection_x_coordinate",
+        units="m",
+    )
+    longitude_m_dim = DimCoord(
+        1000.0 * dgrid_km * np.arange(len_lon),
+        standard_name="projection_y_coordinate",
+        units="m",
+    )
+    latitude_m_dim.axis = "X"
+    longitude_m_dim.axis = "Y"
     del test_cube
     # Calculate and store optimal-time rainfall
     num_members = len(example_files)
     e_prec_t_max = np.zeros((num_members, len_lat, len_lon), dtype=np.float32)
-    e_t_max_index = np.zeros((num_members, len_lat, len_lon), dtype=np.uint16)
+    e_t_max_index = np.zeros((num_members, len_lat, len_lon), dtype=np.int32)
     for member in range(num_members):
         member_cube = iris.load(example_files[member])
         e_prec_t_max[member, :, :], e_t_max_index[member, :, :] = get_t_max(
@@ -414,31 +398,22 @@ def process_files():
     member_dim = DimCoord(
         np.arange(num_members, dtype=np.int32), long_name="realization", units="1"
     )
-
-    # Add back start index when saving index cube
-    make_and_save_cube(
-        e_t_max_index + time_index_start,
-        [member_dim, latitude_dim, longitude_dim],
-        glob_root + "max_rain_ind_t_" + str(minutes_in_window) + ".nc",
-        cube_type="index",
-    )
-    del e_t_max_index
-    make_and_save_cube(
+    cube = iris.cube.Cube(
         e_prec_t_max,
-        [member_dim, latitude_dim, longitude_dim],
-        glob_root + "max_rain_t_" + str(minutes_in_window) + ".nc",
+        dim_coords_and_dims=[
+            (member_dim, 0),
+            (latitude_m_dim, 1),
+            (longitude_m_dim, 2),
+        ],
     )
-    # Post-process for each radius
-    stride_ij = args.stride_ij
+    cube.long_name = "Rainfall amount"
+    cube.var_name = "rainfall_amount"
+    cube.units = "mm"
     for radius in radii:
-        process_for_radius(
-            radius,
-            e_prec_t_max,
-            stride_ij,
-            member_dim,
-            latitude_dim,
-            longitude_dim,
-        )
+        cubeout = GeneratePercentilesFromANeighbourhood(
+            1000.0 * radius, percentiles=percentiles
+        )(cube)
+        iris.save(cubeout, "cubeout" + str(radius) + ".nc")
 
 
 if __name__ == "__main__":
