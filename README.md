@@ -1,4 +1,5 @@
 # fast_rainfall_processing
+
 A numba implementation of fast neighboorhood percentile processing
 
 Sped up by keeping track of already sorted values
@@ -23,4 +24,4 @@ Optional arguments
   -s STRIDE_IJ, --stride_ij STRIDE_IJ
 ```
 
-
+Note that using a stride of e.g. 4 only gives a time saving of about 40%.
