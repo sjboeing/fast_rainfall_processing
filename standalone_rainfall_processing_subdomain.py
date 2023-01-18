@@ -214,17 +214,17 @@ def extract_percentiles_for_location(
     # Going through the list twice will be needed to generalise to topographic filters and deal with boundaries.
     i_rad_i2 = 1.0 / (rad_i * rad_i)
     i_rad_j2 = 1.0 / (rad_j * rad_j)
-    mask= (((in_sort_j[:] - loc_j) * (in_sort_j[:] - loc_j)) * i_rad_j2 + ((in_sort_i[:] - loc_i) * (in_sort_i[:] - loc_i)) * i_rad_i2 <= 1.0)
-    selected_values=in_sort_values[mask]
+    mask = ((in_sort_j[:] - loc_j) * (in_sort_j[:] - loc_j)) * i_rad_j2 + (
+        (in_sort_i[:] - loc_i) * (in_sort_i[:] - loc_i)
+    ) * i_rad_i2 <= 1.0
+    selected_values = in_sort_values[mask]
     n_valid_indices = len(selected_values)
     len_p = np.shape(percentiles)[0]
     percentile_rankings = np.zeros(len_p, dtype=np.uint32)
     percentile_values = np.zeros(len_p, dtype=np.float32)
     for p_index in range(len_p):
-        percentile_ranking = round(
-            (n_valid_indices - 1) * percentiles[p_index] / 100.0
-        )
-        percentile_values[p_index]=selected_values[percentile_ranking]
+        percentile_ranking = round((n_valid_indices - 1) * percentiles[p_index] / 100.0)
+        percentile_values[p_index] = selected_values[percentile_ranking]
     return percentile_values
 
 

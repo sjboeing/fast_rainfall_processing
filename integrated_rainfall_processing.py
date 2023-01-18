@@ -72,6 +72,7 @@ radii = np.array([30])
 minutes_per_timestep = 5
 
 
+
 @njit(parallel=True)
 def get_t_max(input_data, window_length, seconds_per_timestep):
     """

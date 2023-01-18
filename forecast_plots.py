@@ -8,7 +8,6 @@ import datetime
 import os
 import warnings
 import argparse
-
 warnings.filterwarnings("ignore")
 from multiprocessing import Pool
 
@@ -42,7 +41,6 @@ nat_domain = Plot_Domain(
 )
 plot_domain = nat_domain
 tnorm = mpl.colors.Normalize(vmin=0.0, vmax=24.0)
-
 
 def proc_rain(ffile):
     ccube = iris.load(ffile)[0]
@@ -423,7 +421,6 @@ def plot_forecasts(date, radius=30):
     for perc in [95, 98]:
         perc_max_accums(fcst_str, date, perc=perc)
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--date_info", "-f", type=str, required=True)
 parser.add_argument("--init", "-i", default=14, type=int, required=False)
@@ -440,7 +437,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 fcstdirs = args.location + "/processed_forecasts/"
-
 
 if args.evl is not None:
     date_str = args.date_info

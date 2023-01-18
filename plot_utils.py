@@ -39,7 +39,6 @@ class alphater:
         self.value = cycle(ascii_lowercase)
         return next(self.value)
 
-
 def paln(n_colors):
     sns.reset_orig()
     clrs = sns.color_palette("Paired", n_colors=n_colors)
@@ -277,7 +276,7 @@ class Plot_Domain:
         axis.add_feature(states, zorder=0, alpha=0.5)
         """
         if labels:
-            axis.add_image(self.lightmap,level,zorder=2)
+            axis.add_image(self.lightmap, level, zorder=2)
         else:
             axis.add_image(self.linesmap,level,zorder=2)
         """
@@ -699,19 +698,19 @@ class MyPlot:
 \usepackage{overpic}
 \begin{document}
 \begin{figure}
-\centering   
+\centering
 \begin{overpic}%[width=\paperwidth]{"""
             + self.file_str
             + r"""ctopo.pdf}\put(0,0){\includegraphics
    [width=\paperwidth]{"""
             + self.file_str
-            + r"""t.png}%}  
+            + r"""t.png}%}
    \put(0,0){\includegraphics[width=\paperwidth]{"""
             + self.file_str
-            + r"""_decor.png}}  
+            + r"""_decor.png}}
    \put(0,0){\includegraphics[width=\paperwidth]{"""
             + self.file_str
-            + r"""lines.pdf}}  
+            + r"""lines.pdf}}
 \end{overpic}
 \end{figure}
 \clearpage
