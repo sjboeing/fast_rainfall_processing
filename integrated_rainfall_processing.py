@@ -68,7 +68,6 @@ radii = np.array([30])
 minutes_per_timestep = 5
 
 
-
 def process_for_radius(
     radius,
     e_prec_t_max,

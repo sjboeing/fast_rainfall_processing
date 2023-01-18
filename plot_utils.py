@@ -39,6 +39,7 @@ class alphater:
         self.value = cycle(ascii_lowercase)
         return next(self.value)
 
+
 def paln(n_colors):
     sns.reset_orig()
     clrs = sns.color_palette("Paired", n_colors=n_colors)
