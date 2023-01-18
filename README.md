@@ -21,7 +21,4 @@ Optional arguments
 ```
   -h, --help            show this help message and exit
   -w WINDOW_LENGTH, --window_length WINDOW_LENGTH
-  -s STRIDE_IJ, --stride_ij STRIDE_IJ
 ```
-
-Note that using a stride of e.g. 4 only gives a time saving of about 40%.
