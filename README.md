@@ -14,7 +14,7 @@ Postprocessing of radar data still missing
 
 Usage
 ```
-python standalone_rainfall_processing.py
+python standalone_rainfall_processing_subdomain.py
 ```
 
 Optional arguments
