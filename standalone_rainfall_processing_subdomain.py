@@ -409,7 +409,6 @@ def process_for_radius(
     ensemble_processed_data = revamped_percentile_processing(
         e_prec_t_max, rad_i, rad_j, percentiles
     )
-    # Extract latitudes and longitudes to save
     percentile_dim = DimCoord(np.double(percentiles), long_name="percentile", units="1")
     make_and_save_cube(
         ensemble_processed_data,
