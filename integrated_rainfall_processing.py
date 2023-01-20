@@ -9,11 +9,12 @@ from iris.coords import DimCoord
 from iris.time import PartialDateTime
 import warnings
 import datetime
+
 warnings.filterwarnings("ignore")
 import time
 import os
 
-#issues with radar vs fcst data: processing is set up for mogreps members which are stored as mm/s - meanwhile rainfall is mm/hr, so factor of 3600 difference! Will need to play with this unfortunately. See first steps of process_forecasts vs process_radar ; for radar need to divide by 12 (60/5), not *3600!
+# issues with radar vs fcst data: processing is set up for mogreps members which are stored as mm/s - meanwhile rainfall is mm/hr, so factor of 3600 difference! Will need to play with this unfortunately. See first steps of process_forecasts vs process_radar ; for radar need to divide by 12 (60/5), not *3600!
 
 # Argument parser
 parser = argparse.ArgumentParser(
@@ -24,24 +25,36 @@ parser.add_argument("-f", "--fcst_date", required=True, type=str)
 parser.add_argument("-i", "--fcst_init", required=False, default=0, type=int)
 parser.add_argument("-r", "--radar", required=False)
 parser.add_argument("-d", "--date", required=False, type=str)
-parser.add_argument("-loc", "--location", default="/gws/nopw/j04/icasp_swf/bmaybee/", required=False, type=str)
+parser.add_argument(
+    "-loc",
+    "--location",
+    default="/gws/nopw/j04/icasp_swf/bmaybee/",
+    required=False,
+    type=str,
+)
 parser.add_argument("-w", "--window_length", default=12, required=False, type=np.int32)
 parser.add_argument(
     "-s", "--stride_ij", default=1, required=False, type=np.int32
 )  # How many points to skip in the post-processing
 args = parser.parse_args()
-gws_root=args.location
+gws_root = args.location
 if gws_root[-1] != "/":
-    gws_root=gws_root+"/"
-    
+    gws_root = gws_root + "/"
+
 if args.radar is not None:
-    fcst_str = args.fcst_date + "_%02d"%args.fcst_init
-    glob_root = gws_root+"radar_obs/"+fcst_str[:4]+"/"+fcst_str[:8]
+    fcst_str = args.fcst_date + "_%02d" % args.fcst_init
+    glob_root = gws_root + "radar_obs/" + fcst_str[:4] + "/" + fcst_str[:8]
     example_glob = glob_root + "_nimrod_ng_radar_rainrate_composite_1km_merged.nc"
     dgrid_km = 1
 else:
-    fcst_str = args.fcst_date + "_%02d"%args.fcst_init
-    glob_root = gws_root+"mogreps_ensembles/"+fcst_str[:6]+"/prods_op_mogreps-uk_"+fcst_str
+    fcst_str = args.fcst_date + "_%02d" % args.fcst_init
+    glob_root = (
+        gws_root
+        + "mogreps_ensembles/"
+        + fcst_str[:6]
+        + "/prods_op_mogreps-uk_"
+        + fcst_str
+    )
     example_glob = glob_root + "_??_merged.nc"
     dgrid_km = 2.2
 print(fcst_str)
@@ -52,11 +65,12 @@ nthreads = 4
 set_num_threads(nthreads)
 
 # Other settings
-#percentiles = np.array([50, 90, 95, 98, 99, 99.5, 100])  # Percentiles to return
-#radii = np.array([30, 40, 50])
-percentiles = np.array([90,95,98,99])
+# percentiles = np.array([50, 90, 95, 98, 99, 99.5, 100])  # Percentiles to return
+# radii = np.array([30, 40, 50])
+percentiles = np.array([90, 95, 98, 99])
 radii = np.array([30])
 minutes_per_timestep = 5
+
 
 @njit(parallel=True)
 def get_t_max(input_data, window_length, seconds_per_timestep):
@@ -348,15 +362,25 @@ def process_for_radius(
         make_and_save_cube(
             ensemble_processed_data,
             [percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
-            out_root + "_pp_r" + str(radius) + "_min_" + str(minutes_in_window) + "_tot.nc",
+            out_root
+            + "_pp_r"
+            + str(radius)
+            + "_min_"
+            + str(minutes_in_window)
+            + "_tot.nc",
         )
         return
-        
+
     else:
         make_and_save_cube(
             ensemble_processed_data,
             [percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
-            out_root + "_ens_pp_r" + str(radius) + "_min_" + str(minutes_in_window) + "_tot.nc",
+            out_root
+            + "_ens_pp_r"
+            + str(radius)
+            + "_min_"
+            + str(minutes_in_window)
+            + "_tot.nc",
         )
     del ensemble_processed_data
     member_processed_data = np.zeros(
@@ -379,27 +403,32 @@ def process_for_radius(
     make_and_save_cube(
         member_processed_data,
         [member_dim, percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
-        out_root + "_mem_pp_r" + str(radius) + "_min_" + str(minutes_in_window) + "_tot.nc",
+        out_root
+        + "_mem_pp_r"
+        + str(radius)
+        + "_min_"
+        + str(minutes_in_window)
+        + "_tot.nc",
     )
     del member_processed_data
 
 
-def process_files(day,minutes_in_window):
+def process_files(day, minutes_in_window):
     """
     The main routine of the standalone script
     Sets up the data cubes and calls the optimal time
     And radius-dependent processing
     """
-    date_str="%04d%02d%02d"%(day.year,day.month,day.day)
+    date_str = "%04d%02d%02d" % (day.year, day.month, day.day)
     test_cube = iris.load(example_files[0])
-    
+
     global out_root
     if args.radar is not None:
-        #out_root="/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"+fcst_str
-        out_root=gws_root+"radar_obs/processed_radar/"+fcst_str
+        # out_root="/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"+fcst_str
+        out_root = gws_root + "radar_obs/processed_radar/" + fcst_str
         if not os.path.exists(out_root):
             os.makedirs(out_root)
-        out_root=out_root+"/"+fcst_str+"_rad"
+        out_root = out_root + "/" + fcst_str + "_rad"
 
         time_index_start, time_index_end = 0, -1
         latitude_dim = test_cube[0].coord("projection_y_coordinate")
@@ -408,18 +437,18 @@ def process_files(day,minutes_in_window):
         len_lon = test_cube[0].shape[2]
         seconds_per_timestep = minutes_per_timestep / 60
     else:
-        #out_root="/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"+date_str
-        out_root=gws_root+"processed_forecasts/"+fcst_str[:6]
+        # out_root="/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"+date_str
+        out_root = gws_root + "processed_forecasts/" + fcst_str[:6]
         if not os.path.exists(out_root):
             os.makedirs(out_root)
-        out_root=out_root+"/"+fcst_str
+        out_root = out_root + "/" + fcst_str
         if not os.path.exists(out_root):
             os.makedirs(out_root)
-        out_root=out_root+"/"+date_str
-        
-        hrs_ahead = int((day - fcst_stamp).total_seconds()/3600)
+        out_root = out_root + "/" + date_str
+
+        hrs_ahead = int((day - fcst_stamp).total_seconds() / 3600)
         time_index_start = (12 * hrs_ahead) - 1
-        time_index_end = time_index_start + 12*24 - 1
+        time_index_end = time_index_start + 12 * 24 - 1
         latitude_dim = test_cube[0].coord("grid_latitude")
         longitude_dim = test_cube[0].coord("grid_longitude")
         len_lat = test_cube[0].shape[1]
@@ -436,16 +465,19 @@ def process_files(day,minutes_in_window):
         member_cube = iris.load(example_files[member])
         e_prec_t_max[member, :, :], e_t_max_index[member, :, :] = get_t_max(
             member_cube[0].data[time_index_start:time_index_end, :, :],
-            #args.window_length,
-            int(minutes_in_window/minutes_per_timestep),
+            # args.window_length,
+            int(minutes_in_window / minutes_per_timestep),
             seconds_per_timestep,
         )
-        e_prec_t_day[member, :, :] = np.sum(member_cube[0].data[time_index_start:time_index_end, :, :], axis=0) *seconds_per_timestep
+        e_prec_t_day[member, :, :] = (
+            np.sum(member_cube[0].data[time_index_start:time_index_end, :, :], axis=0)
+            * seconds_per_timestep
+        )
         del member_cube
     member_dim = DimCoord(
         np.arange(num_members, dtype=np.int32), long_name="member", units="1"
     )
-    
+
     # Add back start index when saving index cube
     make_and_save_cube(
         e_t_max_index + time_index_start,
@@ -461,10 +493,12 @@ def process_files(day,minutes_in_window):
     )
 
     if os.path.isdir(out_root + "_exact_tot.nc") == False:
-        make_and_save_cube(e_prec_t_day,
+        make_and_save_cube(
+            e_prec_t_day,
             [member_dim, latitude_dim, longitude_dim],
-            out_root + "_exact_tot.nc",)
-    
+            out_root + "_exact_tot.nc",
+        )
+
     # Post-process for each radius
     stride_ij = args.stride_ij
     for radius in radii:
@@ -476,31 +510,32 @@ def process_files(day,minutes_in_window):
             member_dim,
             latitude_dim,
             longitude_dim,
-            minutes_in_window
+            minutes_in_window,
         )
+
 
 fcst_day = datetime.datetime.strptime(fcst_str[:8], "%Y%m%d")
 fcst_stamp = datetime.datetime.strptime(fcst_str, "%Y%m%d_%H")
 
 days_ahead = []
 if fcst_day.year < 2019:
-    out=2
+    out = 2
 else:
-    out=5
-    
-for i in range(1,out):
-    days_ahead.append(fcst_day+datetime.timedelta(days=i))
+    out = 5
+
+for i in range(1, out):
+    days_ahead.append(fcst_day + datetime.timedelta(days=i))
 
 if args.radar is not None:
     days_ahead = [fcst_day]
 if args.date is not None:
-    days_ahead = [datetime.datetime.strptime(args.date,"%Y%m%d")]
+    days_ahead = [datetime.datetime.strptime(args.date, "%Y%m%d")]
 
-t=time.time()
-for period in [60,180,360]:
+t = time.time()
+for period in [60, 180, 360]:
     for day in days_ahead:
-        process_files(day,period)
+        process_files(day, period)
 print(time.time() - t)
-    
-#if __name__ == "__main__":
+
+# if __name__ == "__main__":
 #    process_files()
