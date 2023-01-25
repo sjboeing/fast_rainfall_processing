@@ -1,31 +1,23 @@
-## Jaiks, so much plotting stuff needed for this work
-import matplotlib
-
-matplotlib.use("agg")
-from matplotlib.axes import Axes
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.io.img_tiles as tiles
-from skimage import exposure, restoration
-import cartopy.feature as cfeature
-import iris
-import iris.plot as iplt
-import matplotlib.pyplot as plt
-import iris.analysis.cartography
-from PIL import Image
-from skimage.transform import rescale
-from matplotlib.transforms import offset_copy
-from matplotlib.animation import FuncAnimation
-from iris.plot import _draw_2d_from_bounds
-import seaborn as sns
-import numpy as np
+""" Jaiks, so much plotting stuff needed for this work """
 import os
-import matplotlib as mpl
 from string import ascii_lowercase
 from itertools import cycle
+import numpy as np
+import seaborn as sns
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.transforms import offset_copy
 from matplotlib.legend_handler import HandlerBase
 from matplotlib.colors import ListedColormap, to_rgba
-import copy
+import iris
+import iris.plot as iplt
+import iris.analysis.cartography
+import cartopy.crs as ccrs
+import cartopy.io.img_tiles as tiles
+import cartopy.feature as cfeature
+from skimage import exposure
+from skimage.transform import rescale
+from PIL import Image
 
 
 class alphater:
@@ -76,7 +68,6 @@ class MultiLineHandler(HandlerBase):
 
 ############## Highly manual script to produce locations of axes
 myweight = "black"
-# myfamily='Liberation Sans'
 myfamily = "DejaVu Sans"
 fudgealpha = 0.8
 
@@ -85,43 +76,6 @@ coastlines = cfeature.NaturalEarthFeature(
 )
 states = cfeature.STATES.with_scale("10m")
 crs_latlon = ccrs.PlateCarree()
-# nws_precip_colors = [
-# "#04e9e7",
-# "#019ff4",
-# "#0066db",
-# "#02fd02",
-# "#01c501",
-# "#008e00",
-# "#fdf802",
-# "#e5bc00",
-# "#fd9500",
-# "#fd0000",
-# "#d40000",
-# "#bc0000",
-# "#f800fd",
-# "#9854c6",
-# "#fdfdfd"
-# ]
-# precip_colormap = matplotlib.colors.ListedColormap(nws_precip_colors)
-# levels = [0.01, 0.5, 1.0, 2.0, 4.0, 8.0, 12.0, 18.0,
-# 25.0, 35.0, 50., 70.0, 100.0, 140.0, 200.0]
-
-# tol_precip_colors = [
-#    "#88ccee",
-#    "#44aa99",
-#    "#117733",
-#    "#999933",
-#    "#ddcc77",
-#    "#cc6677",
-#    "#882255",
-#    "#aa4499",
-#    "#332288",
-#    "#000000"
-# ]
-# precip_colormap = matplotlib.colors.ListedColormap(tol_precip_colors)
-# levels = [1.0, 4.0, 8.0, 12.0, 16.0, 24.0, 32.0, 48.0, 64.0, 96.0]
-
-# norm = matplotlib.colors.BoundaryNorm(levels, 10)
 
 tol_precip_colors = [
     "#90C987",
@@ -175,8 +129,7 @@ def scale_bar(ax, length=None, location=(0.75, 0.9), linewidth=3):
         def scale_number(x):
             if str(x)[0] in ["1", "2", "5"]:
                 return int(x)
-            else:
-                return scale_number(x - 10**ndim)
+            return scale_number(x - 10**ndim)
 
         length = scale_number(length)
 
@@ -275,12 +228,10 @@ class Plot_Domain:
     def generate_linesmap(self, axis, level, fontsize, labels):
         axis.add_feature(coastlines, zorder=99)
         axis.add_feature(states, zorder=0, alpha=0.5)
-        """
-        if labels:
-            axis.add_image(self.lightmap, level, zorder=2)
-        else:
-            axis.add_image(self.linesmap,level,zorder=2)
-        """
+        # if labels:
+        #    axis.add_image(self.lightmap, level, zorder=2)
+        # else:
+        #    axis.add_image(self.linesmap,level,zorder=2)
         geodetic_transform = ccrs.Geodetic()._as_mpl_transform(axis)
         text_transform = offset_copy(geodetic_transform, units="dots", x=-5)
         for label, latlabel, lonlabel in zip(
@@ -377,11 +328,11 @@ class MyPlot:
         self.atop = atop
         self.aright = aright
         self.amarg = amarg
-        if almarg == None:
+        if almarg is None:
             self.almarg = self.amarg
         else:
             self.almarg = almarg
-        if armarg == None:
+        if armarg is None:
             self.armarg = self.amarg
         else:
             self.armarg = armarg
@@ -686,8 +637,8 @@ class MyPlot:
         self.cleanup()
 
     def process_overlays(self):
-        f = open(self.file_str + ".tex", "w")
-        f.write(
+        f_file = open(self.file_str + ".tex", "w")
+        f_file.write(
             r"""\documentclass{article}
 \usepackage[paperwidth="""
             + str(self.size[0])
@@ -718,7 +669,7 @@ class MyPlot:
 \end{document}
 """
         )
-        f.close()
+        f_file.close()
 
     def cleanup(self):
         os.system(
@@ -750,8 +701,8 @@ def extract_hyetograph(ffile, lon, lat, perc):
 
     try:
         rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ll = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_geodetic = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
         sample_points = [
             ("grid_latitude", target_xy[1]),
             ("grid_longitude", target_xy[0]),
@@ -760,8 +711,8 @@ def extract_hyetograph(ffile, lon, lat, perc):
         rot_pole = rainfall.coord(
             "projection_y_coordinate"
         ).coord_system.as_cartopy_crs()
-        ll = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_geodetic = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
         sample_points = [
             ("projection_y_coordinate", target_xy[1]),
             ("projection_x_coordinate", target_xy[0]),
@@ -779,8 +730,8 @@ def extract_OSGB_hyetograph(ffile, lon, lat, perc):
 
     try:
         rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ll = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_osgb = ccrs.OSGB()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
         sample_points = [
             ("grid_latitude", target_xy[1]),
             ("grid_longitude", target_xy[0]),
@@ -789,8 +740,8 @@ def extract_OSGB_hyetograph(ffile, lon, lat, perc):
         rot_pole = rainfall.coord(
             "projection_y_coordinate"
         ).coord_system.as_cartopy_crs()
-        ll = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_osgb = ccrs.OSGB()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
         sample_points = [
             ("projection_y_coordinate", target_xy[1]),
             ("projection_x_coordinate", target_xy[0]),
@@ -804,8 +755,8 @@ def extract_pdf(ffile, nfile, lon, lat):
     nrainfall = iris.load(nfile)[0]
     try:
         rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ll = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_geodetic = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
         sample_points = [
             ("grid_latitude", target_xy[1]),
             ("grid_longitude", target_xy[0]),
@@ -814,8 +765,8 @@ def extract_pdf(ffile, nfile, lon, lat):
         rot_pole = rainfall.coord(
             "projection_y_coordinate"
         ).coord_system.as_cartopy_crs()
-        ll = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_geodetic = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
         sample_points = [
             ("projection_y_coordinate", target_xy[1]),
             ("projection_x_coordinate", target_xy[0]),
@@ -830,8 +781,8 @@ def extract_OSBG_pdf(ffile, nfile, lon, lat):
     nrainfall = iris.load(nfile)[0]
     try:
         rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ll = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_osgb = ccrs.OSGB()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
         sample_points = [
             ("grid_latitude", target_xy[1]),
             ("grid_longitude", target_xy[0]),
@@ -840,8 +791,8 @@ def extract_OSBG_pdf(ffile, nfile, lon, lat):
         rot_pole = rainfall.coord(
             "projection_y_coordinate"
         ).coord_system.as_cartopy_crs()
-        ll = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ll)
+        ccrs_osgb = ccrs.OSGB()
+        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
         sample_points = [
             ("projection_y_coordinate", target_xy[1]),
             ("projection_x_coordinate", target_xy[0]),
