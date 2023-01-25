@@ -17,13 +17,15 @@ parser = argparse.ArgumentParser(
     prog="Percentile processor",
     description="A numba implementation of fast neighbourhood percentile processing",
 )
-parser.add_argument("-d", "--fcst_date", required=True, type=str)
-parser.add_argument("-i", "--fcst_init", required=True, type=int)
+parser.add_argument("-f", "--fcst_date", required=True, type=str)
+parser.add_argument("-i", "--fcst_init", required=False, default=0, type=int)
+parser.add_argument("-d", "--date", required=False, type=str)
 parser.add_argument("-r", "--radar", required=False)
 parser.add_argument("-w", "--window_length", default=12, required=False, type=np.int32)
 args = parser.parse_args()
+
+fcst_str = args.fcst_date + "_%02d" % args.fcst_init
 if args.radar is not None:
-    fcst_str = args.fcst_date + "_%02d" % args.fcst_init
     glob_root = (
         "/gws/nopw/j04/icasp_swf/bmaybee/radar_obs/" + fcst_str[:4] + "/" + fcst_str[:8]
     )
@@ -31,7 +33,6 @@ if args.radar is not None:
     dgrid_km = 1
 
 else:
-    fcst_str = args.fcst_date + "_%02d" % args.fcst_init
     glob_root = (
         "/gws/nopw/j04/icasp_swf/bmaybee/mogreps_ensembles/"
         + fcst_str[:6]
@@ -48,16 +49,15 @@ print(fcst_str)
 # example_files = glob(example_glob)
 
 example_files = glob(example_glob)
-print(example_glob, example_files)
+##print(example_glob, example_files)
 
 # Other settings
 # percentiles = np.array([50, 90, 95, 98, 99, 99.5, 100])  # Percentiles to return
 # radii = np.array([30, 40, 50])
-percentiles = np.array([95, 98])
+percentiles = np.array([90, 95, 98, 99])
 radii = np.array([30])
 minutes_per_timestep = 5
-seconds_per_timestep = minutes_per_timestep * 60
-# minutes_in_window = minutes_per_timestep * args.window_length
+#minutes_in_window = minutes_per_timestep * args.window_length
 # time_index_start = (12 * 16) - 1
 # time_index_end = (12 * 40) - 2
 
@@ -152,14 +152,16 @@ def process_files(day, minutes_in_window):
     date_str = "%04d%02d%02d" % (day.year, day.month, day.day)
     # Use first file to get latitudes and longitudes
     test_cube = iris.load(example_files[0])
-    print(test_cube[0])
+    #print(test_cube[0])
     global out_root
     if args.radar is not None:
+        """
         out_root = (
             "/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"
             + fcst_str
         )
-        # out_root="/gws/nopw/j04/icasp_swf/bmaybee/radar_obs/processed_radar/"+fcst_str
+        """
+        out_root="/gws/nopw/j04/icasp_swf/bmaybee/radar_obs/processed_radar/"+fcst_str
         if not os.path.exists(out_root):
             os.makedirs(out_root)
         out_root = out_root + "/" + fcst_str + "_rad"
@@ -169,18 +171,19 @@ def process_files(day, minutes_in_window):
         longitude_dim = test_cube[0].coord("projection_x_coordinate")
         len_lat = test_cube[0].shape[1]
         len_lon = test_cube[0].shape[2]
+        seconds_per_timestep = minutes_per_timestep / 60
 
     else:
+        """
         out_root = (
             "/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"
             + date_str
         )
         """
-        out_root="/gws/nopw/j04/icasp_swf/bmaybee/processed_forecasts/"+fcst_str[:-6]+"/"+fcst_str
+        out_root="/gws/nopw/j04/icasp_swf/bmaybee/processed_forecasts/"+fcst_str[:6]+"/"+fcst_str
         if not os.path.exists(out_root):
             os.makedirs(out_root)
         out_root=out_root+"/"+date_str
-        """
 
         hrs_ahead = int((day - fcst_stamp).total_seconds() / 3600)
         time_index_start = (12 * hrs_ahead) - 1
@@ -189,6 +192,7 @@ def process_files(day, minutes_in_window):
         longitude_dim = test_cube[0].coord("grid_longitude")
         len_lat = test_cube[0].shape[1]
         len_lon = test_cube[0].shape[2]
+        seconds_per_timestep = minutes_per_timestep * 60
     del test_cube
 
     # Calculate and store optimal-time rainfall
@@ -236,17 +240,19 @@ def process_files(day, minutes_in_window):
 fcst_day = datetime.datetime.strptime(fcst_str[:8], "%Y%m%d")
 fcst_stamp = datetime.datetime.strptime(fcst_str, "%Y%m%d_%H")
 
-days_ahead = []
-if fcst_day.year < 2019:
-    out = 2
-else:
-    out = 5
-
-for i in range(1, out):
-    days_ahead.append(fcst_day + datetime.timedelta(days=i))
-
 if args.radar is not None:
-    day_ahead = [fcst_day]
+    days_ahead = [fcst_day]
+elif args.date is None:
+    days_ahead = []
+    if fcst_day.year < 2019:
+        out = 2
+    else:
+        out = 5
+    
+    for i in range(1,out):
+        days_ahead.append(fcst_day + datetime.timedelta(days=i)) 
+else:
+    days_ahead=[datetime.datetime.strptime(args.date, "%Y%m%d")]
 
 t = time.time()
 for period in [60, 180, 360]:
