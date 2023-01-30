@@ -1,6 +1,9 @@
 # NetCDF files
 *.nc
 
+# Notebooks
+*.ipynb
+
 # Profiling output
 *.dat
 
