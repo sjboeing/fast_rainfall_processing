@@ -12,8 +12,6 @@ from utils import get_t_max, revamped_percentile_processing, make_and_save_cube
 
 warnings.filterwarnings("ignore")
 
-# issues with radar vs fcst data: processing is set up for mogreps members which are stored as mm/s - meanwhile rainfall is mm/hr, so factor of 3600 difference! Will need to play with this unfortunately. See first steps of process_forecasts vs process_radar ; for radar need to divide by 12 (60/5), not *3600!
-
 # Argument parser
 parser = argparse.ArgumentParser(
     prog="Percentile processor",
@@ -55,7 +53,6 @@ else:
 print(fcst_str)
 
 example_files = glob(example_glob)
-print(example_glob, example_files)
 
 # Other settings
 # percentiles = np.array([50, 90, 95, 98, 99, 99.5, 100])  # Percentiles to return
@@ -154,7 +151,6 @@ def process_files(day, minutes_in_window):
 
     global out_root
     if args.radar is not None:
-        # out_root="/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"+fcst_str
         out_root = gws_root + "radar_obs/processed_radar/" + fcst_str
         if not os.path.exists(out_root):
             os.makedirs(out_root)
@@ -167,7 +163,6 @@ def process_files(day, minutes_in_window):
         len_lon = test_cube[0].shape[2]
         seconds_per_timestep = minutes_per_timestep / 60
     else:
-        # out_root="/home/users/bmaybee/manual_forecast_scripts/fast_rainfall_processing_files/"+date_str
         out_root = gws_root + "processed_forecasts/" + fcst_str[:6]
         if not os.path.exists(out_root):
             os.makedirs(out_root)
@@ -244,25 +239,26 @@ def process_files(day, minutes_in_window):
 fcst_day = datetime.datetime.strptime(fcst_str[:8], "%Y%m%d")
 fcst_stamp = datetime.datetime.strptime(fcst_str, "%Y%m%d_%H")
 
-days_ahead = []
-if fcst_day.year < 2019:
-    out = 2
-else:
-    out = 5
-
-for i in range(1, out):
-    days_ahead.append(fcst_day + datetime.timedelta(days=i))
-
 if args.radar is not None:
     days_ahead = [fcst_day]
-if args.date is not None:
-    days_ahead = [datetime.datetime.strptime(args.date, "%Y%m%d")]
+elif args.date is None:
+    days_ahead = []
+    if fcst_day.year < 2019:
+        out = 2
+    else:
+        out = 5
+
+    for i in range(1,out):
+        days_ahead.append(fcst_day + datetime.timedelta(days=i))
+else:
+    days_ahead=[datetime.datetime.strptime(args.date, "%Y%m%d")]
 
 t = time.time()
 for period in [60, 180, 360]:
     for day in days_ahead:
         process_files(day, period)
 print(time.time() - t)
+
 
 # if __name__ == "__main__":
 #    process_files()
