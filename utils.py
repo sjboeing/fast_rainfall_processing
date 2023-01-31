@@ -9,7 +9,7 @@ set_num_threads(NTHREADS)
 
 
 @njit(parallel=True)
-def get_t_max(input_data, window_length, seconds_per_timestep):
+def get_t_max(input_data, window_length, seconds_per_timestep, scale_factor=1.0):
     """
     This bit of code gets the optimal-time precipitation and the corresponding
     time index. It expects a 3D (time,lat,lon) input array, i.e one member at a
@@ -52,6 +52,7 @@ def get_t_max(input_data, window_length, seconds_per_timestep):
                 if prec_t > prec_t_max[i_index, j_index]:
                     prec_t_max[i_index, j_index] = prec_t
                     t_max_index[i_index, j_index] = t_index
+    prec_t_max = prec_t_max * scale_factor
     return prec_t_max, t_max_index
 
 

@@ -161,7 +161,8 @@ def process_files(day, minutes_in_window):
         longitude_dim = test_cube[0].coord("projection_x_coordinate")
         len_lat = test_cube[0].shape[1]
         len_lon = test_cube[0].shape[2]
-        seconds_per_timestep = minutes_per_timestep / 60
+        seconds_per_timestep = minutes_per_timestep * 60
+        scale_factor = 3600.0
     else:
         out_root = gws_root + "processed_forecasts/" + fcst_str[:6]
         if not os.path.exists(out_root):
@@ -179,6 +180,7 @@ def process_files(day, minutes_in_window):
         len_lat = test_cube[0].shape[1]
         len_lon = test_cube[0].shape[2]
         seconds_per_timestep = minutes_per_timestep * 60
+        scale_factor = 1.0
     del test_cube
 
     # Calculate and store optimal-time rainfall
@@ -193,10 +195,12 @@ def process_files(day, minutes_in_window):
             # args.window_length,
             int(minutes_in_window / minutes_per_timestep),
             seconds_per_timestep,
+            scale_factor,
         )
         e_prec_t_day[member, :, :] = (
             np.sum(member_cube[0].data[time_index_start:time_index_end, :, :], axis=0)
-            * seconds_per_timestep
+            * seconds_per_timestep,
+            scale_factor,
         )
         del member_cube
     member_dim = DimCoord(
@@ -248,10 +252,10 @@ elif args.date is None:
     else:
         out = 5
 
-    for i in range(1,out):
+    for i in range(1, out):
         days_ahead.append(fcst_day + datetime.timedelta(days=i))
 else:
-    days_ahead=[datetime.datetime.strptime(args.date, "%Y%m%d")]
+    days_ahead = [datetime.datetime.strptime(args.date, "%Y%m%d")]
 
 t = time.time()
 for period in [60, 180, 360]:
