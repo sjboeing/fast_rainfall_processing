@@ -10,13 +10,12 @@ from iris.coords import DimCoord
 # Argument parser
 parser = argparse.ArgumentParser(
     prog="Percentile processor",
-    description="A numba implementation of fast neighboorhood percentile processing",
+    description="A numba implementation of fast neighbourhood percentile processing",
 )
 
 parser.add_argument("-w", "--window_length", default=12, required=False, type=np.int32)
-parser.add_argument(
-    "-s", "--stride_ij", default=1, required=False, type=np.int32
-)  # How many points to skip in the post-processing
+# How many points to skip in the post-processing
+parser.add_argument("-s", "--stride_ij", default=1, required=False, type=np.int32)
 args = parser.parse_args()
 
 # Input files
@@ -42,8 +41,9 @@ time_index_end = 12 * 21
 @njit(parallel=True)
 def get_t_max(input_data, window_length, seconds_per_timestep):
     """
-    This bit of code gets the optimal-time precipitation and the corresponding time index
-    It expects a 3D (time,lat,lon) input array, i.e one member at a time, which is more memory efficient
+    This bit of code gets the optimal-time precipitation and the corresponding
+    time index. It expects a 3D (time,lat,lon) input array, i.e one member at a
+    time, which is more memory efficient.
     """
     if input_data.ndim != 3:
         raise ValueError("get_t_max: input has wrong shape")
@@ -54,12 +54,13 @@ def get_t_max(input_data, window_length, seconds_per_timestep):
         raise ValueError(
             "get_t_max: window_length larger than number of time steps provided"
         )
-    t_max_index = np.zeros((len_i, len_j), dtype=np.uint16)  # Index of optimal times
-    prec_t_max = np.zeros(
-        (len_i, len_j), dtype=np.float32
-    )  # Corresponding precipitation
-    # Find the right time window for each member, latitude and longitude
-    for i_index in prange(len_i):  # Parallelise along longitude
+    # Index of optimal times
+    t_max_index = np.zeros((len_i, len_j), dtype=np.uint16)
+    # Corresponding precipitation
+    prec_t_max = np.zeros((len_i, len_j), dtype=np.float32)
+    # Find the right time window for each latitude and longitude
+    # Parallelise over longitude
+    for i_index in prange(len_i):
         for j_index in range(len_j):
             # Sum over the initial window length
             prec_t = (
@@ -67,7 +68,8 @@ def get_t_max(input_data, window_length, seconds_per_timestep):
                 * seconds_per_timestep
             )
             prec_t_max[i_index, j_index] = prec_t
-            # Running window: remove a time step and add a time step to running total
+            # Running window
+            # Remove a time step and add a time step to a running total
             for t_index in range(len_t - window_length):
                 prec_t = (
                     prec_t
@@ -88,9 +90,15 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
     """
     Percentile search algorithm, rewritten in numba
     - Expects a 3D array (member,lat,lon)
-    - No topographic or land/sea masking (would be much easier to add in this version
-      one idea would be to ignore data where the point is more than 200m higher)
-    - Returns cropped output, only where a full search circle is available
+    - No topographic or land/sea masking. It would be much easier to add in this
+      version one idea would be to ignore data where the point is more than 200m
+      higher.
+      A "difference" field could be added, where two points need to have a
+      difference below a certain limit. The same goes for a "class" field, where
+      two points need to be in same class for the processing.
+    - Currently assumes a constant grid spacing, which would also be easy to
+      change to using great circle distances.
+    - Returns cropped output, only where a full search circle is available.
     """
     if e_prec_t_max.ndim != 3:
         raise ValueError("e_prec_t_max.ndim: input has wrong shape")
@@ -99,14 +107,15 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             raise ValueError("e_prec_t_max.ndim: invalid percentile")
     int_rad_i = int(np.ceil(rad_i))
     int_rad_j = int(np.ceil(rad_j))
+    i_rad_i = 1.0 / rad_i
+    i_rad_j = 1.0 / rad_j
     len_e = e_prec_t_max.shape[0]  # Number of ensemble members
     len_i = e_prec_t_max.shape[1]  # Number of lat indices
     len_j = e_prec_t_max.shape[2]  # Number of lon indices
     len_p = len(percentiles)
-    # Set up output array
-    # Crop to only produce output where a full search circle is available
     # Store indices where to evaluate neighbourhood postprocessing
-    # Ensure same indices always selected for evaluation, independent of radius
+    # Ensure the same indices always selected for evaluation
+    # independent of circle radius
     prelim_range_i_pp = np.arange(0, len_i, stride_ij)
     prelim_range_j_pp = np.arange(0, len_j, stride_ij)
     filter_range_i_pp = (prelim_range_i_pp >= int_rad_i) & (
@@ -121,24 +130,27 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
     len_j_pp = len(range_j_pp)
     if len_i_pp == 0 or len_j_pp == 0:
         raise ValueError("e_prec_t_max.ndim: no valid output points")
+    # Set up output array
     processed_data = np.zeros((len_p, len_i_pp, len_j_pp), dtype=np.float32)
     # Dimensions of search window for post-processing
     len_i_search = 2 * int_rad_i + 1
     len_j_search = 2 * int_rad_j + 1
     # Number of points checked in post-processing
     len_eij_search = len_e * len_i_search * len_j_search
-    # In this case, the activate_point filter is always the same, but this could change in future
-    # for example, if we want to include topographic or land/sea processing
-    # or use a radius which uses exact great circle distances
+    # In this case, the activate_point filter is always the same but this could
+    # change in future for example, if we want to include topographic or land
+    # /sea processing or use a radius which uses exact great circle distances
+    # Needs numba boolean data type
     activate_point = np.full((len_i_search, len_j_search), False, dtype=bool_)
     for i_search in range(len_i_search):
         for j_search in range(len_j_search):
-            # Note: needs offset with respect to center, hence use int in numerator!
-            rad_i_scale = (1.0 * (i_search - int_rad_i)) / rad_i
-            rad_j_scale = (1.0 * (j_search - int_rad_j)) / rad_j
+            # Needs offset with respect to center, hence use int in numerator!
+            rad_i_scale = (1.0 * (i_search - int_rad_i)) * i_rad_i
+            rad_j_scale = (1.0 * (j_search - int_rad_j)) * i_rad_j
             if rad_i_scale * rad_i_scale + rad_j_scale * rad_j_scale <= 1.0:
                 activate_point[i_search, j_search] = True
-    for i_mapping in prange(len_i_pp):  # Parallel over longitude
+    # Parallel over longitude
+    for i_mapping in prange(len_i_pp):
         # Longitude index of point where post_processing is done
         i_index = range_i_pp[i_mapping]
         # Arrays to keep track of values currently in sort
@@ -154,10 +166,10 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
         for j_mapping in range(len_j_pp):
             # Longitude index of point where post_processing is done
             j_index = range_j_pp[j_mapping]
-            # Go over the present sort list and remove entries that are no longer relevant
-            # Mark retained points
+            # Go over the present sort list and remove entries that are no
+            # longer relevant. Mark retained points
             retain_point = np.full((len_i_search, len_j_search), False, dtype=bool_)
-            backfill_index = 0
+            keeper_index = 0
             for retained_index in range(len(in_sort_values)):
                 # Check if cell in existing list is still active
                 # Note that list should already be sorted
@@ -168,14 +180,13 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                 if (rad_i_scale * rad_i_scale + rad_j_scale * rad_j_scale) > 1.0:
                     continue
                 retain_point[delta_i + int_rad_i, delta_j + int_rad_j] = True
-                # keep value in sorted list using backfill
-                in_sort_values[backfill_index] = in_sort_values[retained_index]
-                in_sort_e[backfill_index] = in_sort_e[retained_index]
-                in_sort_i[backfill_index] = in_sort_i[retained_index]
-                in_sort_j[backfill_index] = in_sort_j[retained_index]
-                backfill_index = backfill_index + 1
+                # Keep value in sorted list using backfill
+                in_sort_values[keeper_index] = in_sort_values[retained_index]
+                in_sort_e[keeper_index] = in_sort_e[retained_index]
+                in_sort_i[keeper_index] = in_sort_i[retained_index]
+                in_sort_j[keeper_index] = in_sort_j[retained_index]
+                keeper_index = keeper_index + 1
             # Check for values that need to be added
-            # Index counter
             add_to_sort_index = 0
             for e_target in range(len_e):
                 for i_search in range(len_i_search):
@@ -199,8 +210,8 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             resized_ats_e = add_to_sort_e.take(indices_for_add_to_sort)
             resized_ats_i = add_to_sort_i.take(indices_for_add_to_sort)
             resized_ats_j = add_to_sort_j.take(indices_for_add_to_sort)
-            # Combine two pre-sorted lists using a manual approach
-            new_in_sort_len = backfill_index + add_to_sort_index
+            # Combine the two pre-sorted lists using a manual approach
+            new_in_sort_len = keeper_index + add_to_sort_index
             new_in_sort_values = np.zeros(new_in_sort_len, dtype=np.float32)
             new_in_sort_e = np.zeros(new_in_sort_len, dtype=np.uint8)
             new_in_sort_i = np.zeros(new_in_sort_len, dtype=np.uint16)
@@ -208,7 +219,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             is_index = 0
             rats_index = 0
             for nis_index in range(new_in_sort_len):
-                if (is_index < backfill_index) and (rats_index < add_to_sort_index):
+                if (is_index < keeper_index) and (rats_index < add_to_sort_index):
                     if in_sort_values[is_index] < resized_ats_values[rats_index]:
                         new_in_sort_values[nis_index] = in_sort_values[is_index]
                         new_in_sort_e[nis_index] = in_sort_e[is_index]
@@ -221,7 +232,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
                         new_in_sort_i[nis_index] = resized_ats_i[rats_index]
                         new_in_sort_j[nis_index] = resized_ats_j[rats_index]
                         rats_index = rats_index + 1
-                elif is_index < backfill_index:
+                elif is_index < keeper_index:
                     new_in_sort_values[nis_index] = in_sort_values[is_index]
                     new_in_sort_e[nis_index] = in_sort_e[is_index]
                     new_in_sort_i[nis_index] = in_sort_i[is_index]
@@ -238,7 +249,7 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
             in_sort_e = new_in_sort_e
             in_sort_i = new_in_sort_i
             in_sort_j = new_in_sort_j
-            # Combine the relevant data
+            # Extract percentiles for this target point
             for p_mapping in range(len_p):
                 p_index = round(
                     (len(in_sort_values) - 1) * percentiles[p_mapping] / 100.0
@@ -251,8 +262,8 @@ def fast_percentile_processing(e_prec_t_max, rad_i, rad_j, percentiles, stride_i
 
 def make_and_save_cube(data, dims, cube_filename, cube_type="amount"):
     """
-    Routine to set up and save a cube with given dimensions,
-    which adds the relevant attributes
+    Routine to set up and save a cube with given dimensions, which adds the
+    relevant attributes
     """
     if len(dims) == 3:
         cube = iris.cube.Cube(
@@ -303,24 +314,22 @@ def process_for_radius(
     radius,
     e_prec_t_max,
     stride_ij,
-    num_members,
     member_dim,
     latitude_dim,
     longitude_dim,
 ):
     """
-    Wrapper routine which sets up and saves the data cubes
+    Wrapper routine which sets up and saves the data cubes and calls post-processing
     """
-    rad_i = (
-        radius / dgrid_km
-    )  # Search radius in grid points along longitude, does not need to be integer
-    rad_j = (
-        radius / dgrid_km
-    )  # Search radius in grid points along latitudes, does not need to be integer
-    # Calculate post-processed rainfall, obtain indices of cropped domain
+    # Search radius in grid points along longitude, does not need to be integer
+    rad_i = radius / dgrid_km
+    # Search radius in grid points along latitudes, does not need to be integer
+    rad_j = radius / dgrid_km
+    # Calculate ensemble post-processed rainfall, obtain indices of cropped domain
     ensemble_processed_data, range_i_pp, range_j_pp = fast_percentile_processing(
         e_prec_t_max, rad_i, rad_j, percentiles, stride_ij
     )
+    # Extract latitudes and longitudes to save
     reduced_latitude_dim = latitude_dim[range_i_pp]
     reduced_longitude_dim = longitude_dim[range_j_pp]
     percentile_dim = DimCoord(np.double(percentiles), long_name="percentile", units="1")
@@ -329,7 +338,30 @@ def process_for_radius(
         [percentile_dim, reduced_latitude_dim, reduced_longitude_dim],
         glob_root + "ens_pp_r" + str(radius) + "_t_" + str(minutes_in_window) + ".nc",
     )
-    del ensemble_processed_data
+    # del ensemble_processed_data
+    # Process and save individual members
+    num_members = np.shape(e_prec_t_max)[0]
+    int_rad_i = int(np.ceil(rad_i))
+    int_rad_j = int(np.ceil(rad_j))
+    len_e = e_prec_t_max.shape[0]  # Number of ensemble members
+    len_i = e_prec_t_max.shape[1]  # Number of lat indices
+    len_j = e_prec_t_max.shape[2]  # Number of lon indices
+    len_p = len(percentiles)
+    # Store indices where to evaluate neighbourhood postprocessing
+    # Ensure the same indices always selected for evaluation
+    # independent of circle radius
+    prelim_range_i_pp = np.arange(0, len_i, stride_ij)
+    prelim_range_j_pp = np.arange(0, len_j, stride_ij)
+    filter_range_i_pp = (prelim_range_i_pp >= int_rad_i) & (
+        prelim_range_i_pp < len_i - int_rad_i
+    )
+    filter_range_j_pp = (prelim_range_j_pp >= int_rad_j) & (
+        prelim_range_j_pp < len_j - int_rad_j
+    )
+    range_i_pp = prelim_range_i_pp[filter_range_i_pp]
+    range_j_pp = prelim_range_j_pp[filter_range_j_pp]
+    reduced_latitude_dim = latitude_dim[range_i_pp]
+    reduced_longitude_dim = longitude_dim[range_j_pp]
     member_processed_data = np.zeros(
         (
             num_members,
@@ -358,8 +390,7 @@ def process_for_radius(
 def process_files():
     """
     The main routine of the standalone script
-    Sets up the data cubes and calls the optimal time
-    And radius-dependent processing
+    Sets up the data cubes and calls the optimal time and radius-dependent processing
     """
     # Use first file to get latitudes and longitudes
     test_cube = iris.load(example_files[0])
@@ -381,7 +412,7 @@ def process_files():
         )
         del member_cube
     member_dim = DimCoord(
-        np.arange(num_members, dtype=np.int32), long_name="member", units="1"
+        np.arange(num_members, dtype=np.int32), long_name="realization", units="1"
     )
 
     # Add back start index when saving index cube
@@ -404,7 +435,6 @@ def process_files():
             radius,
             e_prec_t_max,
             stride_ij,
-            num_members,
             member_dim,
             latitude_dim,
             longitude_dim,

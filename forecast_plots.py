@@ -441,7 +441,6 @@ parser.add_argument(
 args = parser.parse_args()
 fcstdirs = args.location + "/processed_forecasts/"
 
-
 if args.evl is not None:
     date_str = args.date_info
     radardir = args.location + "/radar_obs/processed_radar/" + date_str + "_00/"
