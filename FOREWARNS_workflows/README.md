@@ -11,31 +11,35 @@ user_dir sits in a user's home area (backed-up, lower storage capacity). Folders
 
 gws_dir\
 |--> mogreps_ensembles
-  *	|--> <%Y%m>\
+> |--> <%Y%m>
+
 |--> processed_forecasts
-  *	|--> <%Y%m>
-    * |--> <%Y%m%d_%H>\
+> |--> <%Y%m>
+> > |--> <%Y%m%d_%H>
+
 |--> flood_forecasts
-  *	|--> RainfallReferenceFiles
-  *	|--> rainfall_inputs
-    * |--> <%Y%m%d>
-    * |--> radar
-      * |--> <%Y%m%d>
-  *	|--> Shapefile\
+> |--> RainfallReferenceFiles
+> |--> rainfall_inputs
+> > |--> <%Y%m%d>
+> > |--> radar
+> > > |--> <%Y%m%d>
+> |--> Shapefile
+
 |--> radar_obs
-  *	|--> <%Y>
-  *	|--> processed_radar
-    * |--> <%Y%m%d_00>
+> |--> <%Y>
+> |--> processed_radar
+> > |--> <%Y%m%d_00>
 
 user_dir (Note this is where all scripts should sit)\
 |--> output_plots
-  * |--> evaluation
-  *	|--> forecasts
-  *	|--> radar
+> |--> evaluation
+> |--> forecasts
+> |--> radar
 
 A copy of this directory structure is provided. RainfallReferenceFiles and Shapefile contain files needed to generate flood forecasts; these are:
-  * catchment shapfiles for both Northern England and England + Wales (HydroBasins L9 dataset) (dir Shapefile).
-  * list of catchment fid's and sample coordinates on UK OSNG (dir RainfallReferenceFiles)
-  * DUMMY rainfall threshold values for catchment level flood return periods. True data values should be used for accurate forecasts; obtain FEH modelling data from https://fehweb.ceh.ac.uk/.
-  * Reference shapefile (GeoPlots) for enabling common return period legends (dir Shapefile)\
+> catchment shapfiles for both Northern England and England + Wales (HydroBasins L9 dataset) (dir Shapefile).
+> list of catchment fid's and sample coordinates on UK OSNG (dir RainfallReferenceFiles)
+> DUMMY rainfall threshold values for catchment level flood return periods. True data values should be used for accurate forecasts; obtain FEH modelling data from https://fehweb.ceh.ac.uk/.
+> Reference shapefile (GeoPlots) for enabling common return period legends (dir Shapefile)
+
 Note that scripts are currently set to use dummy flood reference values; to change this, modify variable "refs" in extract_catchment_fcsts.py (l68) and FloodForecastLookup.py (l379).
