@@ -1,8 +1,9 @@
 # FOREWARNS workflow
 
-These files comprise the workflow necessary to generateg FOREWARNS flood forecasts and proxies. The workflow routines are the shell scripts\
-    - master.sh $date $init (forecast generation workflow)\
-    - obs_master.sh $date (observations and flood forecast evaluation workflow)\
+These files comprise the workflow necessary to generateg FOREWARNS flood forecasts and proxies. The workflow routines are the shell scripts
+  * master.sh $date $init (forecast generation workflow)
+  * obs_master.sh $date (observations and flood forecast evaluation workflow)
+  
 The entire configuration is designed to be usable by a new user just by modifying directory variables ${gws_dir} and ${user_dir} within these shell scripts.
 
 The workflows and all files called upoon therein depend critically upon the following directory structure.
@@ -19,11 +20,11 @@ gws_dir\
 
 |--> flood_forecasts
 > |--> RainfallReferenceFiles\
+> |--> Shapefile\
 > |--> rainfall_inputs
 > > |--> <%Y%m%d>\
 > > |--> radar
 > > > |--> <%Y%m%d>\
-> |--> Shapefile
 
 |--> radar_obs
 > |--> <%Y>\
@@ -39,7 +40,6 @@ user_dir (Note this is where all scripts should sit)\
 A copy of this directory structure is provided. RainfallReferenceFiles and Shapefile contain files needed to generate flood forecasts; these are: 
   * catchment shapfiles for both Northern England and England + Wales (HydroBasins L9 dataset) (dir Shapefile).
   * list of catchment fid's and sample coordinates on UK OSNG (dir RainfallReferenceFiles)
-  * DUMMY rainfall threshold values for catchment level flood return periods. True data values should be used for accurate forecasts; obtain FEH modelling data from https://fehweb.ceh.ac.uk/.
-  * Reference shapefile (GeoPlots) for enabling common return period legends (dir Shapefile)
+  * DUMMY rainfall threshold values for catchment level flood return periods. True data values should be used for accurate forecasts; obtain FEH modelling data from https://fehweb.ceh.ac.uk/.Reference shapefile (GeoPlots) for enabling common return period legends (dir Shapefile)
 
 Note that scripts are currently set to use dummy flood reference values; to change this, modify variable "refs" in extract_catchment_fcsts.py (l68) and FloodForecastLookup.py (l379).
