@@ -33,14 +33,14 @@ parser.add_argument("-i", "--fcst_init", required=False, default=0, type=str)
 parser.add_argument("-r", "--radar", required=False)
 parser.add_argument("-n", "--nhood", required=False, default=30, type=int)
 parser.add_argument("-d", "--date", required=False, type=str)
-parser.add_argument("-reg", "--region", default="NEng", required=False)
+parser.add_argument("-reg", "--region", default="EngWls", required=False)
 parser.add_argument("-loc", "--location", default="/gws/nopw/j04/icasp_swf/bmaybee", required=False, type=str)
 args = parser.parse_args()
 
 gws_root=args.location
 if gws_root[-1] != "/":
     gws_root=gws_root+"/"
-fcst_str=args.fcst_date+"_"+(args.fcst_init).zfill(2)
+fcst_str=args.fcst_str+"_"+(args.fcst_init).zfill(2)
 fcst_date = datetime.datetime.strptime(fcst_str, "%Y%m%d_%H")
 radius=args.nhood
 dates = []

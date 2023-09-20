@@ -19,14 +19,14 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fcst_str", required=True, type=str)
-parser.add_argument("--init","-i", default =required=False)
+parser.add_argument("-i", "--init", default=18, required=False)
 parser.add_argument("-u", "--user", default="/home/users/bmaybee/", required=False, type=str)
 args = parser.parse_args()
 user_root=args.user
 
 if user_root[-1] != "/":
     user_root=user_root+"/"
-fcst_str=args.fcst_str + "_%02d" % args.init
+fcst_str=args.fcst_str + "_" + (args.init).zfill(2)
 figdir = user_root+"output_plots/forecasts/"+fcst_str[:6]+"/"+fcst_str+"/"
 file_str = figdir+fcst_str+'_FOREWARNS_fcst'
 
