@@ -29,7 +29,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fcst_str", required=True, type=str)
-parser.add_argument("-i", "--fcst_init", required=False, default=0, type=str)
+parser.add_argument("-i", "--fcst_init", required=False, default="0", type=str)
 parser.add_argument("-r", "--radar", required=False)
 parser.add_argument("-n", "--nhood", required=False, default=30, type=int)
 parser.add_argument("-d", "--date", required=False, type=str)

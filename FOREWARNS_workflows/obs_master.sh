@@ -48,6 +48,6 @@ if [[ $run == 1 ]]; then
   python ${user_dir}/FloodForecastLookup.py -f ${date_info} -r True -reg EngWls -loc ${gws_dir} -u ${user_dir}
   # -f here is the date of the forecast initialised the day prior to observations at 18UTC. Change to meet user specifications! Only generates evaluation plots.
   python ${user_dir}/forecast_plots.py -f $(date -d "${date_info} - 1 day" +"%Y%m%d") -i 18 -e True -d $date_info -loc ${gws_dir} -u ${user_dir}
-  python ${user_dir}/present_evaluations.py -f ${date_info} -i 18 -loc ${gws_dir} -u ${user_dir}
+  python ${user_dir}/present_evaluations.py -f ${date_info} -i 18 -u ${user_dir}
   #. ${user_dir}/make_obs_html.sh $date_info
 fi
