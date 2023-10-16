@@ -1,34 +1,40 @@
-""" Jaiks, so much plotting stuff needed for this work """
-import os
-from string import ascii_lowercase
-from itertools import cycle
-import numpy as np
-import seaborn as sns
+## Jaiks, so much plotting stuff needed for this work
 import matplotlib
+
+matplotlib.use("agg")
+from matplotlib.axes import Axes
 import matplotlib.pyplot as plt
-from matplotlib.transforms import offset_copy
-from matplotlib.legend_handler import HandlerBase
-from matplotlib.colors import ListedColormap, to_rgba
-import iris
-import iris.plot as iplt
-import iris.analysis.cartography
 import cartopy.crs as ccrs
 import cartopy.io.img_tiles as tiles
+from skimage import exposure, restoration
 import cartopy.feature as cfeature
-from skimage import exposure
-from skimage.transform import rescale
+import iris
+import iris.plot as iplt
+import matplotlib.pyplot as plt
+import iris.analysis.cartography
 from PIL import Image
+from skimage.transform import rescale
+from matplotlib.transforms import offset_copy
+from matplotlib.animation import FuncAnimation
+from iris.plot import _draw_2d_from_bounds
+import seaborn as sns
+import numpy as np
+import os
+import matplotlib as mpl
+from string import ascii_lowercase
+from itertools import cycle
+from matplotlib.legend_handler import HandlerBase
+from matplotlib.colors import ListedColormap, to_rgba
+import copy
 
 
 class alphater:
     def __init__(self):
-        self.value = cycle(ascii_lowercase)
-
+        self.value=cycle(ascii_lowercase)
     def next(self):
         return next(self.value)
-
     def first(self):
-        self.value = cycle(ascii_lowercase)
+        self.value=cycle(ascii_lowercase)
         return next(self.value)
 
 
@@ -68,7 +74,7 @@ class MultiLineHandler(HandlerBase):
 
 ############## Highly manual script to produce locations of axes
 myweight = "black"
-myfamily = "DejaVu Sans"
+myfamily = "Liberation Sans"
 fudgealpha = 0.8
 
 coastlines = cfeature.NaturalEarthFeature(
@@ -76,6 +82,43 @@ coastlines = cfeature.NaturalEarthFeature(
 )
 states = cfeature.STATES.with_scale("10m")
 crs_latlon = ccrs.PlateCarree()
+# nws_precip_colors = [
+# "#04e9e7",
+# "#019ff4",
+# "#0066db",
+# "#02fd02",
+# "#01c501",
+# "#008e00",
+# "#fdf802",
+# "#e5bc00",
+# "#fd9500",
+# "#fd0000",
+# "#d40000",
+# "#bc0000",
+# "#f800fd",
+# "#9854c6",
+# "#fdfdfd"
+# ]
+# precip_colormap = matplotlib.colors.ListedColormap(nws_precip_colors)
+# levels = [0.01, 0.5, 1.0, 2.0, 4.0, 8.0, 12.0, 18.0,
+# 25.0, 35.0, 50., 70.0, 100.0, 140.0, 200.0]
+
+# tol_precip_colors = [
+#    "#88ccee",
+#    "#44aa99",
+#    "#117733",
+#    "#999933",
+#    "#ddcc77",
+#    "#cc6677",
+#    "#882255",
+#    "#aa4499",
+#    "#332288",
+#    "#000000"
+# ]
+# precip_colormap = matplotlib.colors.ListedColormap(tol_precip_colors)
+# levels = [1.0, 4.0, 8.0, 12.0, 16.0, 24.0, 32.0, 48.0, 64.0, 96.0]
+
+# norm = matplotlib.colors.BoundaryNorm(levels, 10)
 
 tol_precip_colors = [
     "#90C987",
@@ -98,7 +141,7 @@ levels = [0.01, 1.0, 2.5, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0, 60.0, 80.0, 100.0]
 norm = matplotlib.colors.BoundaryNorm(levels, 12)
 
 # Add scale bar
-def scale_bar(ax, length=None, location=(0.75, 0.9), linewidth=3):
+def scale_bar(ax, length=None, location=(0.7, 0.05), linewidth=3):
     """
     ax is the axes to draw the scalebar on.
     length is the length of the scalebar in km.
@@ -129,7 +172,8 @@ def scale_bar(ax, length=None, location=(0.75, 0.9), linewidth=3):
         def scale_number(x):
             if str(x)[0] in ["1", "2", "5"]:
                 return int(x)
-            return scale_number(x - 10**ndim)
+            else:
+                return scale_number(x - 10**ndim)
 
         length = scale_number(length)
 
@@ -227,11 +271,11 @@ class Plot_Domain:
 
     def generate_linesmap(self, axis, level, fontsize, labels):
         axis.add_feature(coastlines, zorder=99)
-        axis.add_feature(states, zorder=0, alpha=0.5)
-        # if labels:
+        # axis.add_feature(states,zorder=99)
+        #if labels:
         #    axis.add_image(self.lightmap, level, zorder=2)
-        # else:
-        #    axis.add_image(self.linesmap,level,zorder=2)
+        #else:
+        #    axis.add_image(self.linesmap, level, zorder=2)
         geodetic_transform = ccrs.Geodetic()._as_mpl_transform(axis)
         text_transform = offset_copy(geodetic_transform, units="dots", x=-5)
         for label, latlabel, lonlabel in zip(
@@ -251,7 +295,6 @@ class Plot_Domain:
                 lonlabel,
                 latlabel,
                 label,
-                zorder=5,
                 verticalalignment="center",
                 horizontalalignment="right",
                 family=myfamily,
@@ -328,11 +371,11 @@ class MyPlot:
         self.atop = atop
         self.aright = aright
         self.amarg = amarg
-        if almarg is None:
+        if almarg == None:
             self.almarg = self.amarg
         else:
             self.almarg = almarg
-        if armarg is None:
+        if armarg == None:
             self.armarg = self.amarg
         else:
             self.armarg = armarg
@@ -563,12 +606,23 @@ class MyPlot:
         self.ax[ii].set_title(legend, alpha=fudgealpha, fontsize=12, loc="left")
 
     def finish_bg(self):
-        # plt.savefig(self.lines_str,dpi=self.dpi2,transparent=True)
-        # for ii in range(self.nt):
+        plt.savefig(self.lines_str, dpi=self.dpi2, transparent=True)
+        #for ii in range(self.nt):
         #    self.plot_domain.redraw_linesmap(self.ax[ii])
         plt.savefig(self.lines_str, dpi=self.dpi2, transparent=True)
         plt.close("all")
-        # os.system('gs -DPDFSETTINGS=/prepress -dSAFER -dBATCH -dNOPAUSE -dColorImageFilter=/FlateEncode -dColorImageResolution='+str(self.dpi)+' -dMonoImageResolution='+str(self.dpi)+' -dGrayImageResolution='+str(self.dpi)+' -sDEVICE=pdfwrite -sOutputFile='+self.clines_str+'   -c "<< /GrayACSImageDict << /Blend 1 /VSamples [2 1 1 2] /QFactor 1.0 /HSamples [2 1 1 2] >> /ColorACSImageDict << /Blend 1 /VSamples [2 1 1 2] /QFactor 0.5 /HSamples [2 1 1 2] >> >> setdistillerparams " -f '+self.lines_str)
+        os.system(
+            "gs -DPDFSETTINGS=/prepress -dSAFER -dBATCH -dNOPAUSE -dColorImageFilter=/FlateEncode -dColorImageResolution="
+            + str(self.dpi)
+            + " -dMonoImageResolution="
+            + str(self.dpi)
+            + " -dGrayImageResolution="
+            + str(self.dpi)
+            + " -sDEVICE=pdfwrite -sOutputFile="
+            + self.clines_str
+            + '   -c "<< /GrayACSImageDict << /Blend 1 /VSamples [2 1 1 2] /QFactor 1.0 /HSamples [2 1 1 2] >> /ColorACSImageDict << /Blend 1 /VSamples [2 1 1 2] /QFactor 0.5 /HSamples [2 1 1 2] >> >> setdistillerparams " -f '
+            + self.lines_str
+        )
 
     def setup_plots(self):
         self.fig = plt.figure(figsize=self.size, dpi=self.dpi)
@@ -582,7 +636,7 @@ class MyPlot:
         self.ax[-1].set_extent(self.plot_domain.extent, crs=crs_latlon)
         self.im.append(
             iplt.pcolormesh(
-                cube, norm=self.norm, cmap=self.cmap, zorder=1, rasterized=True
+                cube, norm=self.norm, cmap=self.cmap, zorder=1, rasterized=True, alpha=0.8
             )
         )
         cube.data = np.ma.masked_less(cube.data, 0.01)
@@ -618,7 +672,7 @@ class MyPlot:
             try:
                 self.ax[ii].get_xaxis().set_visible(False)
                 self.ax[ii].get_yaxis().set_visible(False)
-                # self.ax[ii].add_feature(states,zorder=99,alpha=0.5)
+                self.ax[ii].add_feature(states, zorder=99, alpha=0.8)
                 self.ax[ii].outline_patch.set_visible(False)
                 self.ax[ii].background_patch.set_visible(False)
             except:
@@ -627,7 +681,7 @@ class MyPlot:
         os.system(
             "convert "
             + self.frame_str
-            + " -alpha on -channel A -evaluate set 80% +channel "
+            + " -alpha on -channel A -evaluate set 90% +channel "
             + self.tframe_str
         )
         # os.system('optipng -quiet '+self.tframe_str)
@@ -637,8 +691,8 @@ class MyPlot:
         self.cleanup()
 
     def process_overlays(self):
-        f_file = open(self.file_str + ".tex", "w")
-        f_file.write(
+        f = open(self.file_str + ".tex", "w")
+        f.write(
             r"""\documentclass{article}
 \usepackage[paperwidth="""
             + str(self.size[0])
@@ -650,36 +704,27 @@ class MyPlot:
 \usepackage{overpic}
 \begin{document}
 \begin{figure}
-\centering
-\begin{overpic}%[width=\paperwidth]{"""
+\centering   
+\begin{overpic}[width=\paperwidth]{"""
             + self.file_str
-            + r"""ctopo.pdf}\put(0,0){\includegraphics
-   [width=\paperwidth]{"""
-            + self.file_str
-            + r"""t.png}%}
+            + r"""t.png}
    \put(0,0){\includegraphics[width=\paperwidth]{"""
             + self.file_str
-            + r"""_decor.png}}
+            + r"""_decor.png}}  
    \put(0,0){\includegraphics[width=\paperwidth]{"""
             + self.file_str
-            + r"""lines.pdf}}
+            + r"""clines.pdf}}  
 \end{overpic}
 \end{figure}
 \clearpage
 \end{document}
 """
         )
-        f_file.close()
+        f.close()
 
     def cleanup(self):
-        os.system(
-            "pdflatex --output-directory="
-            + self.dir_str
-            + " "
-            + self.file_str
-            + ".tex > /dev/null 2>&1"
-        )
-        # os.system('pdfsizeopt --use-pngout=no '+self.file_str+'.pdf')
+        os.system("pdflatex --output-directory="+ self.dir_str+ " "+ self.file_str+ ".tex > /dev/null 2>&1")
+        #os.system("pdflatex --output-directory="+ self.dir_str+ " "+ self.file_str+ ".tex")
         plt.close("all")
         os.system("rm -f " + self.file_str + "c*")
         os.system("rm -f " + self.file_str + "lines*")
@@ -692,17 +737,12 @@ class MyPlot:
         os.system("rm -f " + self.file_str + ".tex")
 
 
-def extract_hyetograph(ffile, lon, lat, perc):
+def extract_hyetograph(ffile, lon, lat):
     rainfall = iris.load(ffile)[0]
     try:
-        rainfall = rainfall.extract(iris.Constraint(percentile=perc))
-    except:
-        pass
-
-    try:
         rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ccrs_geodetic = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
+        ll = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ll)
         sample_points = [
             ("grid_latitude", target_xy[1]),
             ("grid_longitude", target_xy[0]),
@@ -711,37 +751,8 @@ def extract_hyetograph(ffile, lon, lat, perc):
         rot_pole = rainfall.coord(
             "projection_y_coordinate"
         ).coord_system.as_cartopy_crs()
-        ccrs_geodetic = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
-        sample_points = [
-            ("projection_y_coordinate", target_xy[1]),
-            ("projection_x_coordinate", target_xy[0]),
-        ]
-    rainfall_series = rainfall.interpolate(sample_points, iris.analysis.Nearest())
-    return rainfall_series.data
-
-
-def extract_OSGB_hyetograph(ffile, lon, lat, perc):
-    rainfall = iris.load(ffile)[0]
-    try:
-        rainfall = rainfall.extract(iris.Constraint(percentile=perc))
-    except:
-        pass
-
-    try:
-        rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ccrs_osgb = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
-        sample_points = [
-            ("grid_latitude", target_xy[1]),
-            ("grid_longitude", target_xy[0]),
-        ]
-    except:
-        rot_pole = rainfall.coord(
-            "projection_y_coordinate"
-        ).coord_system.as_cartopy_crs()
-        ccrs_osgb = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
+        ll = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ll)
         sample_points = [
             ("projection_y_coordinate", target_xy[1]),
             ("projection_x_coordinate", target_xy[0]),
@@ -755,8 +766,8 @@ def extract_pdf(ffile, nfile, lon, lat):
     nrainfall = iris.load(nfile)[0]
     try:
         rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ccrs_geodetic = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
+        ll = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ll)
         sample_points = [
             ("grid_latitude", target_xy[1]),
             ("grid_longitude", target_xy[0]),
@@ -765,34 +776,8 @@ def extract_pdf(ffile, nfile, lon, lat):
         rot_pole = rainfall.coord(
             "projection_y_coordinate"
         ).coord_system.as_cartopy_crs()
-        ccrs_geodetic = ccrs.Geodetic()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_geodetic)
-        sample_points = [
-            ("projection_y_coordinate", target_xy[1]),
-            ("projection_x_coordinate", target_xy[0]),
-        ]
-    rainfall_series = rainfall.interpolate(sample_points, iris.analysis.Nearest())
-    nrainfall_out = nrainfall.interpolate(sample_points, iris.analysis.Nearest())
-    return rainfall_series.data, nrainfall_out.data
-
-
-def extract_OSBG_pdf(ffile, nfile, lon, lat):
-    rainfall = iris.load(ffile)[0]
-    nrainfall = iris.load(nfile)[0]
-    try:
-        rot_pole = rainfall.coord("grid_latitude").coord_system.as_cartopy_crs()
-        ccrs_osgb = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
-        sample_points = [
-            ("grid_latitude", target_xy[1]),
-            ("grid_longitude", target_xy[0]),
-        ]
-    except:
-        rot_pole = rainfall.coord(
-            "projection_y_coordinate"
-        ).coord_system.as_cartopy_crs()
-        ccrs_osgb = ccrs.OSGB()
-        target_xy = rot_pole.transform_point(lon, lat, ccrs_osgb)
+        ll = ccrs.Geodetic()
+        target_xy = rot_pole.transform_point(lon, lat, ll)
         sample_points = [
             ("projection_y_coordinate", target_xy[1]),
             ("projection_x_coordinate", target_xy[0]),
