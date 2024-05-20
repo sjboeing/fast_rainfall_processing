@@ -42,9 +42,9 @@ if [[ $run == 1 ]]; then
   # Transfer to higher memory server for processing. Essential for first routine.
   ssh -A sci6 "
   # Code designed for use on UK JASMIN collaborative platform. Python packages available in bulk via jaspy environments - full specifications can be found at https://help.jasmin.ac.uk/docs/software-on-jasmin/jaspy-envs/.
-  # Specification essential to ensure access to specific numba environment; relied on for post-processing algorithm.
-  module load jaspy/3.10/r20220721
-  # ESSENTIAL - neighbourhood post-processing routine applied to raw radar rainfall fields:
+  # Require newer version of numba for post-processing algorithm.
+  module load jaspy/3.10
+  # ESSENTIAL - neighbourhood post-processing routine applied to raw radar rainfall fields (in units kg/m2/s!):
   python ${user_dir}/integrated_rainfall_processing.py -f ${date_info} -i 0 -r True -loc ${gws_dir}
   # forecast_plots and FloodForecastLookup both require packages within an older jaspy configuration (specifically, cartopy and ogr)
   module load jaspy/3.7

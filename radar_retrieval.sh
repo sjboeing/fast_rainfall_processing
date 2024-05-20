@@ -24,6 +24,7 @@ for file in *${day}*.tar *${day1}*.tar; do
 done
 cd
 
+# Note: this script combines pp files AND changes units from mm/hr -> kg/m2/s
 ssh -A sci6 "module load jaspy; python ${user_dir}/merge_radar.py $day $radardir "
 
 rm $radardir/temp

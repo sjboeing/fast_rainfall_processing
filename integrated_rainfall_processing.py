@@ -51,6 +51,7 @@ if gws_root[-1] != "/":
 cubes = []
 if args.radar is not None:
     glob_root = (gws_root + "radar_obs/" + fcst_str[:4] + "/" + fcst_str[:8])
+    #glob_root = "/home/users/bmaybee/iCASP/"+fcst_str[:8]
     radar_file = glob_root + "_nimrod_ng_radar_rainrate_composite_1km_merged.nc"
     cubes.append(iris.load(radar_file)[0])
     # Nimrod radar resolution
@@ -239,8 +240,7 @@ def process_files(day, minutes_in_window, cubes):
         longitude_dim = test_cube.coord("projection_x_coordinate")
         len_lat = test_cube.shape[1]
         len_lon = test_cube.shape[2]
-        # Nimrod radar units mm/hr - therefore apply standard conversion.
-        seconds_per_timestep = minutes_per_timestep / 60
+        seconds_per_timestep = minutes_per_timestep * 60
 
     else:
         out_root=gws_root+"processed_forecasts/"+fcst_str[:6]+"/"+fcst_str
@@ -256,7 +256,6 @@ def process_files(day, minutes_in_window, cubes):
         longitude_dim = test_cube.coord("grid_longitude")
         len_lat = test_cube.shape[1]
         len_lon = test_cube.shape[2]
-        # MOGREPS units kg m^3 / s - extra factor of 3600 to convert to mm/hr is wrapped into variable here (i.e. 1/60 * 3600) !
         seconds_per_timestep = minutes_per_timestep * 60
         
     del test_cube
@@ -266,7 +265,10 @@ def process_files(day, minutes_in_window, cubes):
     e_prec_t_max = np.zeros((num_members, len_lat, len_lon), dtype=np.float32)
     e_t_max_index = np.zeros((num_members, len_lat, len_lon), dtype=np.uint16)
     for member in range(num_members):
-        member_cube = cubes[member]
+        if args.radar is not None:
+            member_cube = cubes[member].data
+        else:
+            member_cube = cubes[member]
         #member_cube = iris.load(example_files[member])[0]
         e_prec_t_max[member, :, :], e_t_max_index[member, :, :] = get_t_max(
             member_cube.data[time_index_start:time_index_end, :, :],

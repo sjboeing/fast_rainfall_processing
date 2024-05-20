@@ -26,6 +26,9 @@ if len(cube) > 1:
 else:
     out_cube = cube[0][:,600:1310,480:1090]
 
+# Nimrod radar data give in mm/hr - convert data to kg/ms2/s ready for integrated_rainfall_processing.py
+out_cube=out_cube/3600.
+
 outcubename=file_list[0][:-58] + date + file_list[0][-46:] + ".nc"
 try:
     out_cube.remove_coord('experiment_number')
